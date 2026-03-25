@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from PIL import Image
-from google import genai
-from google.genai import types
 
 
 def analyze_with_gemini(file_path: str, prompt: str) -> dict | None:
@@ -17,13 +14,15 @@ def analyze_with_gemini(file_path: str, prompt: str) -> dict | None:
         return None
 
     try:
+        from google import genai
+        from google.genai import types
+
         client = genai.Client(api_key=api_key)
 
         ext = Path(file_path).suffix.lower()
         is_video = ext in (".mp4", ".mov", ".webm")
 
         if is_video:
-            # Videos: send inline bytes
             video_bytes = open(file_path, "rb").read()
             mime_map = {".mp4": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm"}
             mime = mime_map.get(ext, "video/mp4")
@@ -37,7 +36,6 @@ def analyze_with_gemini(file_path: str, prompt: str) -> dict | None:
                 ),
             )
         else:
-            # Images: send PIL object directly (resize first)
             img = Image.open(file_path)
             img.thumbnail((1024, 1024))
             response = client.models.generate_content(
@@ -46,7 +44,6 @@ def analyze_with_gemini(file_path: str, prompt: str) -> dict | None:
             )
 
         text = response.text.strip()
-        # Strip markdown code fences if present
         if text.startswith("```"):
             text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
 

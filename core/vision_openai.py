@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import json
-import os
 import base64
 from pathlib import Path
 from PIL import Image
-from openai import OpenAI
-
-from core.scanner import extract_video_frames
 
 
 def _resize_image_if_needed(file_path: str, max_size: int = 1024) -> str:
@@ -46,6 +42,9 @@ def analyze_with_openai(file_path: str, prompt: str) -> dict | None:
         return None
 
     try:
+        from openai import OpenAI
+        from core.scanner import extract_video_frames
+
         client = OpenAI(api_key=api_key)
 
         ext = Path(file_path).suffix.lower()
