@@ -21,55 +21,129 @@ from core.namer import assemble_name, detect_conflicts
 from core.scanner import extract_video_frame
 
 # ── Page config ──────────────────────────────────────────────────────────────
-st.set_page_config(page_title="Creative Asset Renamer", layout="wide")
+st.set_page_config(page_title="Creative Asset Renamer", page_icon="🎨", layout="wide")
 
 # ── Load config ──────────────────────────────────────────────────────────────
 config = load_config()
 
 # ── Session state defaults ───────────────────────────────────────────────────
-if "screen" not in st.session_state:
-    st.session_state["screen"] = "upload"
-if "scan_results" not in st.session_state:
-    st.session_state["scan_results"] = {}
-if "uploaded_files_data" not in st.session_state:
-    st.session_state["uploaded_files_data"] = []
-if "temp_paths" not in st.session_state:
-    st.session_state["temp_paths"] = []
-if "selected_file_idx" not in st.session_state:
-    st.session_state["selected_file_idx"] = 0
-if "versions" not in st.session_state:
-    st.session_state["versions"] = {}
-if "rename_done" not in st.session_state:
-    st.session_state["rename_done"] = False
+defaults = {
+    "screen": "upload",
+    "scan_results": {},
+    "uploaded_files_data": [],
+    "uploaded_files_bytes": {},
+    "temp_paths": [],
+    "selected_file_idx": 0,
+    "versions": {},
+    "rename_done": False,
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 # ── Custom CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+    /* Global */
+    .block-container { padding-top: 2rem; }
+
+    /* File list card */
+    .file-card {
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        transition: all 0.15s;
+    }
+    .file-card:hover { background: #f1f5f9; }
+    .file-card-active {
+        background: #eef2ff !important;
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 1px #6366f1;
+    }
+    .file-card-name {
+        font-weight: 500;
+        color: #1e293b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Filename preview */
     .filename-preview {
-        background-color: #e8f4f8;
-        border: 1px solid #b8d4e3;
-        border-radius: 8px;
-        padding: 12px 16px;
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
-        color: #1a3a4a;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        border: 1px solid #c7d2fe;
+        border-radius: 10px;
+        padding: 14px 18px;
+        font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+        font-size: 13px;
+        color: #312e81;
         word-break: break-all;
         margin: 8px 0;
+        letter-spacing: 0.3px;
     }
-    .confidence-high { color: #22c55e; font-weight: bold; }
-    .confidence-medium { color: #eab308; font-weight: bold; }
-    .confidence-low { color: #ef4444; font-weight: bold; }
-    .confidence-auto, .confidence-manual { color: #9ca3af; font-weight: bold; }
-    .file-badge {
+
+    /* Confidence badges */
+    .badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+    .badge-high { background: #dcfce7; color: #166534; }
+    .badge-medium { background: #fef9c3; color: #854d0e; }
+    .badge-low { background: #fee2e2; color: #991b1b; }
+    .badge-auto { background: #f1f5f9; color: #475569; }
+    .badge-manual { background: #f1f5f9; color: #475569; }
+
+    /* Upload badge */
+    .upload-badge {
         background: #6366f1;
         color: white;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 14px;
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
         display: inline-block;
     }
-    .status-reviewed { color: #22c55e; }
-    .status-pending { color: #eab308; }
+
+    /* Section headers */
+    .section-header {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #94a3b8;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    /* Rename table */
+    .rename-row {
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 4px;
+        font-size: 13px;
+    }
+    .rename-row:nth-child(odd) { background: #f8fafc; }
+    .rename-arrow { color: #6366f1; font-weight: bold; margin: 0 12px; }
+
+    /* Version buttons */
+    div[data-testid="stButton"] > button {
+        border-radius: 8px;
+    }
+
+    /* Hide streamlit branding */
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -84,35 +158,39 @@ def save_temp_file(uploaded_file) -> str:
     return temp_path
 
 
-def get_thumbnail(file_path: str, max_size: int = 400) -> Image.Image | None:
+def show_preview(file_path: str, file_idx: int):
+    """Show image or video preview. Uses st.video for videos (works without ffmpeg)."""
     ext = Path(file_path).suffix.lower()
-    try:
-        if ext in (".jpg", ".jpeg", ".png"):
+    if ext in (".jpg", ".jpeg", ".png"):
+        try:
             img = Image.open(file_path)
-            img.thumbnail((max_size, max_size))
-            return img
-        elif ext in (".mp4", ".mov", ".webm"):
-            frame_bytes = extract_video_frame(file_path, 0.25)
-            if frame_bytes:
-                import io
-                img = Image.open(io.BytesIO(frame_bytes))
-                img.thumbnail((max_size, max_size))
-                return img
-    except Exception:
-        pass
-    return None
+            st.image(img, use_container_width=True)
+        except Exception:
+            st.info("Could not load image preview")
+    elif ext in (".mp4", ".mov", ".webm"):
+        # Use raw bytes for st.video — works on Streamlit Cloud without ffmpeg
+        file_bytes = st.session_state["uploaded_files_bytes"].get(file_idx)
+        if file_bytes:
+            st.video(file_bytes)
+        else:
+            try:
+                with open(file_path, "rb") as f:
+                    st.video(f.read())
+            except Exception:
+                st.info("Could not load video preview")
 
 
 def confidence_badge(confidence: str) -> str:
-    icons = {
-        "high": '<span class="confidence-high">● High</span>',
-        "medium": '<span class="confidence-medium">● Medium</span>',
-        "low": '<span class="confidence-low">● Low</span>',
-        "auto": '<span class="confidence-auto">● Auto</span>',
-        "manual": '<span class="confidence-manual">● Manual</span>',
-        "failed": '<span class="confidence-low">● Failed</span>',
-    }
-    return icons.get(confidence, icons["low"])
+    css_class = {
+        "high": "badge-high",
+        "medium": "badge-medium",
+        "low": "badge-low",
+        "auto": "badge-auto",
+        "manual": "badge-manual",
+        "failed": "badge-low",
+    }.get(confidence, "badge-low")
+    label = confidence.capitalize()
+    return f'<span class="badge {css_class}">{label}</span>'
 
 
 def build_filename_for_file(file_idx: int) -> str:
@@ -150,65 +228,72 @@ def open_folder(path: str):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def screen_upload():
-    st.markdown("# Creative Asset Renamer")
-    st.markdown("*Drop your creatives, get structured names*")
-    st.markdown("---")
+    # Centered layout
+    spacer1, center, spacer2 = st.columns([1, 2, 1])
 
-    uploaded_files = st.file_uploader(
-        "Upload your ad creatives",
-        type=["jpg", "jpeg", "png", "mp4", "mov", "webm"],
-        accept_multiple_files=True,
-        key="file_uploader",
-    )
+    with center:
+        st.markdown("")
+        st.markdown("## 🎨 Creative Asset Renamer")
+        st.caption("Drop your creatives, get structured names powered by AI")
+        st.markdown("")
 
-    if uploaded_files:
-        st.markdown(f'<span class="file-badge">{len(uploaded_files)} files selected</span>', unsafe_allow_html=True)
+        uploaded_files = st.file_uploader(
+            "Upload your ad creatives",
+            type=["jpg", "jpeg", "png", "mp4", "mov", "webm"],
+            accept_multiple_files=True,
+            key="file_uploader",
+        )
 
-    st.markdown("---")
+        if uploaded_files:
+            st.markdown(f'<span class="upload-badge">{len(uploaded_files)} file{"s" if len(uploaded_files) != 1 else ""} selected</span>', unsafe_allow_html=True)
+            st.markdown("")
 
-    # Who Made It — persists across all files
-    who_options = []
-    for field in config["fields"]:
-        if field["name"] == "who_made_it":
-            who_options = field["allowed_values"] + ["custom..."]
-            break
+        # Who Made It
+        who_options = []
+        for field in config["fields"]:
+            if field["name"] == "who_made_it":
+                who_options = field["allowed_values"] + ["custom..."]
+                break
 
-    who_made_it = st.selectbox("Who Made It (applies to all files)", who_options, key="who_made_it_global")
+        who_made_it = st.selectbox("Who Made It (applies to all files)", who_options, key="who_made_it_global")
 
-    if who_made_it == "custom...":
-        who_made_it = st.text_input("Enter creator name", key="who_made_it_custom")
+        if who_made_it == "custom...":
+            who_made_it = st.text_input("Enter creator name", key="who_made_it_custom")
 
-    st.markdown("---")
+        st.markdown("")
 
-    # Scan button
-    scan_disabled = not uploaded_files
-    if st.button("🔍 Scan Files with AI", disabled=scan_disabled, type="primary", use_container_width=True):
-        temp_paths = []
-        progress = st.progress(0, text="Preparing files...")
+        scan_disabled = not uploaded_files
+        if st.button("Scan Files with AI", disabled=scan_disabled, type="primary", use_container_width=True):
+            temp_paths = []
+            file_bytes_map = {}
+            progress = st.progress(0, text="Preparing files...")
 
-        for i, uf in enumerate(uploaded_files):
-            progress.progress((i * 0.3) / len(uploaded_files), text=f"Saving file {i+1} of {len(uploaded_files)}...")
-            temp_paths.append(save_temp_file(uf))
+            for i, uf in enumerate(uploaded_files):
+                progress.progress((i * 0.3) / len(uploaded_files), text=f"Saving file {i+1} of {len(uploaded_files)}...")
+                temp_paths.append(save_temp_file(uf))
+                # Store raw bytes for video preview
+                file_bytes_map[i] = uf.getvalue()
 
-        st.session_state["temp_paths"] = temp_paths
-        st.session_state["uploaded_files_data"] = [
-            {"name": uf.name, "size": uf.size} for uf in uploaded_files
-        ]
+            st.session_state["temp_paths"] = temp_paths
+            st.session_state["uploaded_files_bytes"] = file_bytes_map
+            st.session_state["uploaded_files_data"] = [
+                {"name": uf.name, "size": uf.size} for uf in uploaded_files
+            ]
 
-        results = {}
-        for i, temp_path in enumerate(temp_paths):
-            progress.progress(
-                0.3 + (i / len(temp_paths)) * 0.7,
-                text=f"🤖 Scanning file {i+1} of {len(temp_paths)}: {uploaded_files[i].name}",
-            )
-            results[i] = analyze_file(temp_path, config, who_made_it)
+            results = {}
+            for i, temp_path in enumerate(temp_paths):
+                progress.progress(
+                    0.3 + (i / len(temp_paths)) * 0.7,
+                    text=f"Scanning file {i+1} of {len(temp_paths)}: {uploaded_files[i].name}",
+                )
+                results[i] = analyze_file(temp_path, config, who_made_it)
 
-        progress.progress(1.0, text="✅ Scan complete!")
+            progress.progress(1.0, text="Scan complete!")
 
-        st.session_state["scan_results"] = results
-        st.session_state["versions"] = {i: None for i in range(len(temp_paths))}
-        st.session_state["screen"] = "review"
-        st.rerun()
+            st.session_state["scan_results"] = results
+            st.session_state["versions"] = {i: None for i in range(len(temp_paths))}
+            st.session_state["screen"] = "review"
+            st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -216,8 +301,6 @@ def screen_upload():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def screen_review():
-    st.markdown("# Review & Edit")
-
     results = st.session_state["scan_results"]
     temp_paths = st.session_state["temp_paths"]
     files_data = st.session_state["uploaded_files_data"]
@@ -225,57 +308,103 @@ def screen_review():
 
     if num_files == 0:
         st.warning("No files scanned. Go back to upload.")
-        if st.button("← Back to Upload"):
+        if st.button("Back to Upload"):
             st.session_state["screen"] = "upload"
             st.rerun()
         return
 
-    # Two-column layout
-    left_col, right_col = st.columns([2, 3])
+    idx = st.session_state["selected_file_idx"]
+    if idx >= num_files:
+        idx = 0
+        st.session_state["selected_file_idx"] = 0
 
-    # ── Left: File list ──
-    with left_col:
-        st.markdown("### Files")
+    # ── Three-column layout ──
+    file_col, preview_col, fields_col = st.columns([1.2, 1.5, 2.3], gap="medium")
+
+    # ── Column 1: File list ──
+    with file_col:
+        st.markdown('<div class="section-header">Files</div>', unsafe_allow_html=True)
+
         for i in range(num_files):
             fname = files_data[i]["name"]
-            is_selected = (i == st.session_state["selected_file_idx"])
+            is_selected = (i == idx)
+            ext = Path(fname).suffix.lower()
+            icon = "🖼" if ext in (".jpg", ".jpeg", ".png") else "🎬"
 
-            # Check if user has modified any field for this file
-            reviewed = any(
-                f"{i}_{field['name']}" in st.session_state
-                for field in config["fields"]
-            )
-            status = "✅" if reviewed else "🟡"
-
-            btn_label = f"{status} {fname}"
-            if st.button(btn_label, key=f"file_btn_{i}", use_container_width=True,
-                         type="primary" if is_selected else "secondary"):
+            btn_type = "primary" if is_selected else "secondary"
+            if st.button(f"{icon}  {fname}", key=f"file_btn_{i}", use_container_width=True, type=btn_type):
                 st.session_state["selected_file_idx"] = i
                 st.rerun()
 
-    # ── Right: Detail view ──
-    with right_col:
-        idx = st.session_state["selected_file_idx"]
-        if idx >= num_files:
-            idx = 0
-            st.session_state["selected_file_idx"] = 0
+        st.markdown("")
+
+        # Apply to All
+        if st.button("Apply shared fields to all", use_container_width=True, help="Applies Language, Who Made It & Details from current file to all"):
+            batch_fields = ["language", "who_made_it", "details"]
+            for field_name in batch_fields:
+                source_key = f"{idx}_{field_name}"
+                if source_key in st.session_state:
+                    for j in range(num_files):
+                        if j != idx:
+                            st.session_state[f"{j}_{field_name}"] = st.session_state[source_key]
+            st.rerun()
+
+        st.markdown("---")
+
+        # Navigation
+        if st.button("Back to Upload", use_container_width=True):
+            st.session_state["screen"] = "upload"
+            st.rerun()
+
+        if st.button("Continue to Rename", type="primary", use_container_width=True):
+            st.session_state["screen"] = "confirm"
+            st.rerun()
+
+    # ── Column 2: Preview ──
+    with preview_col:
+        st.markdown('<div class="section-header">Preview</div>', unsafe_allow_html=True)
 
         file_path = temp_paths[idx]
         file_data = files_data[idx]
         scan_result = results.get(idx, {})
 
-        # Thumbnail
-        thumb = get_thumbnail(file_path)
-        if thumb:
-            st.image(thumb, caption=file_data["name"], use_container_width=False)
-        else:
-            st.info(f"📁 {file_data['name']} (preview not available)")
+        show_preview(file_path, idx)
 
-        st.caption(f"Original: **{file_data['name']}** | Provider: {scan_result.get('_provider', 'unknown')}")
+        st.caption(f"**{file_data['name']}**")
+        provider = scan_result.get("_provider", "unknown")
+        st.caption(f"AI: {provider}")
 
-        st.markdown("---")
+        # Live filename preview
+        st.markdown("")
+        st.markdown('<div class="section-header">Generated Filename</div>', unsafe_allow_html=True)
+        preview_name = build_filename_for_file(idx)
+        st.markdown(f'<div class="filename-preview">{preview_name}</div>', unsafe_allow_html=True)
 
-        # ── Field editors ──
+        # Version controls
+        ver_col1, ver_col2, ver_col3 = st.columns([2, 1, 1])
+        with ver_col1:
+            current_ver = st.session_state["versions"].get(idx)
+            ver_text = f"v{current_ver}" if current_ver and current_ver > 1 else "No version"
+            st.caption(ver_text)
+        with ver_col2:
+            if st.button("+", key=f"ver_up_{idx}", help="Add version"):
+                cur = st.session_state["versions"].get(idx) or 1
+                st.session_state["versions"][idx] = cur + 1
+                st.rerun()
+        with ver_col3:
+            if st.button("−", key=f"ver_down_{idx}", help="Remove version"):
+                cur = st.session_state["versions"].get(idx)
+                if cur and cur > 1:
+                    st.session_state["versions"][idx] = cur - 1
+                else:
+                    st.session_state["versions"][idx] = None
+                st.rerun()
+
+    # ── Column 3: Field editors ──
+    with fields_col:
+        st.markdown('<div class="section-header">Fields</div>', unsafe_allow_html=True)
+        scan_result = results.get(idx, {})
+
         for field in config["fields"]:
             field_name = field["name"]
             field_data = scan_result.get(field_name, {"value": "x", "confidence": "low"})
@@ -292,19 +421,19 @@ def screen_review():
             if ai_value in options:
                 default_idx = options.index(ai_value)
             else:
-                # AI returned a value not in allowed list — add it as first option
                 if ai_value and ai_value != "x":
                     options.insert(0, ai_value)
                     default_idx = 0
                 else:
                     default_idx = 0
 
-            col_label, col_select, col_badge = st.columns([2, 4, 2])
+            label_col, select_col = st.columns([1, 3])
 
-            with col_label:
+            with label_col:
                 st.markdown(f"**{field['display_name']}**")
+                st.markdown(confidence_badge(confidence), unsafe_allow_html=True)
 
-            with col_select:
+            with select_col:
                 key = f"{idx}_{field_name}"
                 selected = st.selectbox(
                     field["display_name"],
@@ -320,62 +449,8 @@ def screen_review():
                         f"Custom {field['display_name']}",
                         key=custom_key,
                         label_visibility="collapsed",
-                        placeholder=f"Enter custom {field['display_name'].lower()}...",
+                        placeholder=f"Enter custom value...",
                     )
-
-            with col_badge:
-                # Show badge only if user hasn't overridden
-                st.markdown(confidence_badge(confidence), unsafe_allow_html=True)
-
-        # ── Live filename preview ──
-        st.markdown("---")
-        preview_name = build_filename_for_file(idx)
-        st.markdown(f'<div class="filename-preview">📄 {preview_name}</div>', unsafe_allow_html=True)
-
-        # Version selector
-        ver_col1, ver_col2, ver_col3 = st.columns([2, 1, 1])
-        with ver_col1:
-            current_ver = st.session_state["versions"].get(idx)
-            st.caption(f"Version: {'None' if not current_ver else f'v{current_ver}'}")
-        with ver_col2:
-            if st.button("➕ Version", key=f"ver_up_{idx}"):
-                cur = st.session_state["versions"].get(idx) or 1
-                st.session_state["versions"][idx] = cur + 1
-                st.rerun()
-        with ver_col3:
-            if st.button("➖ Version", key=f"ver_down_{idx}"):
-                cur = st.session_state["versions"].get(idx)
-                if cur and cur > 1:
-                    st.session_state["versions"][idx] = cur - 1
-                else:
-                    st.session_state["versions"][idx] = None
-                st.rerun()
-
-        # Apply to All button
-        st.markdown("---")
-        if st.button("📋 Apply Language, Who Made It & Details to All Files", use_container_width=True):
-            batch_fields = ["language", "who_made_it", "details"]
-            for field_name in batch_fields:
-                source_key = f"{idx}_{field_name}"
-                if source_key in st.session_state:
-                    for j in range(num_files):
-                        if j != idx:
-                            target_key = f"{j}_{field_name}"
-                            st.session_state[target_key] = st.session_state[source_key]
-            st.success("Applied to all files!")
-            st.rerun()
-
-    # Navigation
-    st.markdown("---")
-    nav_col1, nav_col2 = st.columns(2)
-    with nav_col1:
-        if st.button("← Back to Upload", use_container_width=True):
-            st.session_state["screen"] = "upload"
-            st.rerun()
-    with nav_col2:
-        if st.button("Continue to Rename →", type="primary", use_container_width=True):
-            st.session_state["screen"] = "confirm"
-            st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -383,101 +458,111 @@ def screen_review():
 # ══════════════════════════════════════════════════════════════════════════════
 
 def screen_confirm():
-    st.markdown("# Confirm & Rename")
-
     temp_paths = st.session_state["temp_paths"]
     files_data = st.session_state["uploaded_files_data"]
     num_files = len(temp_paths)
 
     if num_files == 0:
         st.warning("No files to rename.")
-        if st.button("← Back to Upload"):
+        if st.button("Back to Upload"):
             st.session_state["screen"] = "upload"
             st.rerun()
         return
 
-    # Build all new names
-    new_names = [build_filename_for_file(i) for i in range(num_files)]
-    new_names = detect_conflicts(new_names)
+    spacer1, center, spacer2 = st.columns([1, 3, 1])
 
-    # Show table
-    has_conflicts = len(new_names) != len(set(new_names))
+    with center:
+        st.markdown("## Confirm & Rename")
+        st.caption(f"{num_files} files ready to rename")
+        st.markdown("")
 
-    st.markdown("### File Rename Preview")
-    for i in range(num_files):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.text(files_data[i]["name"])
-        with col2:
-            st.text(new_names[i])
+        # Build all new names
+        new_names = [build_filename_for_file(i) for i in range(num_files)]
+        new_names = detect_conflicts(new_names)
 
-    if has_conflicts:
-        st.warning("⚠️ Some files had duplicate names. Suffixes (_a, _b) were added automatically.")
+        # Rename preview table
+        st.markdown('<div class="section-header">Rename Preview</div>', unsafe_allow_html=True)
 
-    st.markdown("---")
+        for i in range(num_files):
+            col_old, col_arrow, col_new = st.columns([3, 0.5, 4])
+            with col_old:
+                st.code(files_data[i]["name"], language=None)
+            with col_arrow:
+                st.markdown("→")
+            with col_new:
+                st.code(new_names[i], language=None)
 
-    # Output mode
-    output_mode = st.radio(
-        "Output mode",
-        ["Copy to output folder (recommended)", "Rename in place"],
-        index=0,
-        key="output_mode",
-    )
+        # Conflict check
+        name_counts = {}
+        for n in new_names:
+            name_counts[n] = name_counts.get(n, 0) + 1
+        has_conflicts = any(c > 1 for c in name_counts.values())
+        if has_conflicts:
+            st.warning("Some files had duplicate names. Suffixes (_a, _b) were added.")
 
-    output_dir = str(Path(__file__).parent / "renamed")
-    if output_mode == "Copy to output folder (recommended)":
-        output_dir = st.text_input("Output folder", value=output_dir, key="output_dir")
+        st.markdown("")
 
-    st.markdown("---")
+        # Output mode
+        output_mode = st.radio(
+            "Output mode",
+            ["Copy to output folder (recommended)", "Rename in place"],
+            index=0,
+            key="output_mode",
+        )
 
-    # Navigation + Rename
-    nav_col1, nav_col2 = st.columns(2)
-    with nav_col1:
-        if st.button("← Back to Review", use_container_width=True):
-            st.session_state["screen"] = "review"
-            st.rerun()
+        output_dir = str(Path(__file__).parent / "renamed")
+        if output_mode == "Copy to output folder (recommended)":
+            output_dir = st.text_input("Output folder", value=output_dir, key="output_dir")
 
-    with nav_col2:
-        if st.button("✅ Rename All", type="primary", use_container_width=True):
-            os.makedirs(output_dir, exist_ok=True)
-            progress = st.progress(0, text="Renaming files...")
-            success_count = 0
+        st.markdown("")
 
-            for i in range(num_files):
-                progress.progress((i + 1) / num_files, text=f"Renaming {i+1} of {num_files}...")
-                src = temp_paths[i]
-                new_name = new_names[i]
+        # Buttons
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            if st.button("Back to Review", use_container_width=True):
+                st.session_state["screen"] = "review"
+                st.rerun()
+        with btn_col2:
+            if st.button("Rename All", type="primary", use_container_width=True):
+                os.makedirs(output_dir, exist_ok=True)
+                progress = st.progress(0, text="Renaming files...")
+                success_count = 0
 
-                try:
-                    if output_mode == "Copy to output folder (recommended)":
-                        dst = os.path.join(output_dir, new_name)
+                for i in range(num_files):
+                    progress.progress((i + 1) / num_files, text=f"Renaming {i+1} of {num_files}...")
+                    src = temp_paths[i]
+                    new_name = new_names[i]
+
+                    try:
+                        if output_mode == "Copy to output folder (recommended)":
+                            dst = os.path.join(output_dir, new_name)
+                        else:
+                            dst = os.path.join(os.path.dirname(src), new_name)
                         shutil.copy2(src, dst)
-                    else:
-                        src_dir = os.path.dirname(src)
-                        dst = os.path.join(src_dir, new_name)
-                        shutil.copy2(src, dst)
-                    success_count += 1
-                except Exception as e:
-                    st.error(f"Failed to rename {files_data[i]['name']}: {e}")
+                        success_count += 1
+                    except Exception as e:
+                        st.error(f"Failed: {files_data[i]['name']} — {e}")
 
-            progress.progress(1.0, text="Done!")
-            st.success(f"✅ {success_count} of {num_files} files renamed successfully!")
-            st.session_state["rename_done"] = True
-            st.session_state["output_dir"] = output_dir
-            st.rerun()
+                progress.progress(1.0, text="Done!")
+                st.session_state["rename_done"] = True
+                st.session_state["output_dir"] = output_dir
+                st.rerun()
 
-    # After rename: show Open Folder button
-    if st.session_state.get("rename_done"):
-        final_dir = st.session_state.get("output_dir", output_dir)
-        st.markdown("---")
-        st.success(f"Files saved to: `{final_dir}`")
-        if st.button("📂 Open Output Folder", type="primary", use_container_width=True):
-            open_folder(final_dir)
+        # After rename success
+        if st.session_state.get("rename_done"):
+            final_dir = st.session_state.get("output_dir", output_dir)
+            st.markdown("")
+            st.success(f"All files renamed successfully! Saved to: `{final_dir}`")
 
-        if st.button("🔄 Start Over", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
+            done_col1, done_col2 = st.columns(2)
+            with done_col1:
+                if st.button("Open Output Folder", type="primary", use_container_width=True):
+                    open_folder(final_dir)
+            with done_col2:
+                if st.button("Start Over", use_container_width=True):
+                    for key in list(st.session_state.keys()):
+                        del st.session_state[key]
+                    st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
