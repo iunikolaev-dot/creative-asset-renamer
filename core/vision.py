@@ -33,8 +33,11 @@ def count_low_confidence(ai_result: dict) -> int:
 
 def _normalize_ai_value(value: str) -> str:
     value = value.lower().strip()
-    value = value.replace(" ", "_")
-    value = re.sub(r"[^a-z0-9_\-]", "", value)
+    # Convert underscores to spaces — underscores are field separators, not for within values
+    value = value.replace("_", " ")
+    value = re.sub(r"[^a-z0-9 /\-]", "", value)
+    # Collapse multiple spaces
+    value = re.sub(r" +", " ", value).strip()
     return value if value else "x"
 
 
