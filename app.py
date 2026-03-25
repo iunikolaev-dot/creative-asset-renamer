@@ -326,6 +326,25 @@ def screen_upload():
 # SCREEN 2: BATCH DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _get_small_thumbnail(file_path: str, size: int = 48) -> Image.Image | None:
+    """Get a small square thumbnail for table rows."""
+    thumb = get_thumbnail(file_path)
+    if thumb is None:
+        return None
+    try:
+        img = thumb.copy()
+        # Crop to square from center
+        w, h = img.size
+        side = min(w, h)
+        left = (w - side) // 2
+        top = (h - side) // 2
+        img = img.crop((left, top, left + side, top + side))
+        img = img.resize((size, size), Image.LANCZOS)
+        return img
+    except Exception:
+        return None
+
+
 def screen_dashboard():
     results = st.session_state["scan_results"]
     temps = st.session_state["temp_paths"]
@@ -375,54 +394,113 @@ def screen_dashboard():
     }
     visible_files = filter_map.get(selected_filter, list(range(n)))
 
-    # ── Batch Table ──
+    # ── Table Header ──
+    st.markdown(
+        '<div style="display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:10px;'
+        'font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:#b0b0b0;'
+        'border-bottom:1px solid #e8e8e5;margin-bottom:4px;">'
+        '<span style="width:28px;"></span>'
+        '<span style="width:48px;"></span>'
+        '<span style="flex:1;">Original</span>'
+        '<span style="width:24px;"></span>'
+        '<span style="flex:1.5;">New Name</span>'
+        '<span style="width:60px;">Status</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── Batch Table with per-file checkboxes and thumbnails ──
     for i in visible_files:
         result = results[i]
         status = classify_file_status(result)
         issues = get_issues(result)
         new_name = build_filename(i)
 
-        dot = status_dot(status)
-        issues_html = " ".join(f'<span class="issue-tag">{iss}</span>' for iss in issues) if issues else ""
-
-        # Row header
-        st.markdown(
-            f'<div class="file-row">'
-            f'{dot}'
-            f'<span class="fname" title="{files[i]["name"]}">{files[i]["name"]}</span>'
-            f'<span class="arrow">→</span>'
-            f'<span class="new-name" title="{new_name}">{new_name}</span>'
-            f'</div>',
-            unsafe_allow_html=True,
+        # Row with: checkbox | thumbnail | original name | arrow | new name | status
+        col_cb, col_thumb, col_orig, col_arrow, col_new, col_status = st.columns(
+            [0.3, 0.4, 1.5, 0.2, 2, 0.5], vertical_alignment="center"
         )
-        if issues_html:
-            st.markdown(f'<div style="margin: -4px 0 6px 26px;">{issues_html}</div>', unsafe_allow_html=True)
 
-        # Inline editor — expander for yellow/red rows
+        with col_cb:
+            # Default: ready files pre-selected
+            default_checked = i in st.session_state.get("selected_for_rename", set())
+            checked = st.checkbox("sel", value=default_checked, key=f"cb_{i}", label_visibility="collapsed")
+            if checked:
+                st.session_state["selected_for_rename"].add(i)
+            else:
+                st.session_state["selected_for_rename"].discard(i)
+
+        with col_thumb:
+            small_thumb = _get_small_thumbnail(temps[i])
+            if small_thumb:
+                st.image(small_thumb, width=48)
+            else:
+                ext = Path(files[i]["name"]).suffix.lower()
+                icon = "🎬" if ext in (".mp4", ".mov", ".webm") else "🖼️"
+                st.markdown(f'<div style="width:48px;height:48px;background:#f5f5f5;border-radius:6px;'
+                            f'display:flex;align-items:center;justify-content:center;font-size:20px;">{icon}</div>',
+                            unsafe_allow_html=True)
+
+        with col_orig:
+            st.markdown(f'<span style="font-family:monospace;font-size:12px;color:#787774;">'
+                        f'{files[i]["name"]}</span>', unsafe_allow_html=True)
+
+        with col_arrow:
+            st.markdown('<span style="color:#b0b0b0;font-size:14px;">→</span>', unsafe_allow_html=True)
+
+        with col_new:
+            st.markdown(f'<span style="font-family:monospace;font-size:12px;color:#37352f;font-weight:500;">'
+                        f'{new_name}</span>', unsafe_allow_html=True)
+
+        with col_status:
+            st.markdown(status_dot(status), unsafe_allow_html=True)
+
+        # Issues tags below the row
+        if issues:
+            issues_html = " ".join(f'<span class="issue-tag">{iss}</span>' for iss in issues)
+            st.markdown(f'<div style="margin:-8px 0 2px 80px;">{issues_html}</div>', unsafe_allow_html=True)
+
+        # ── Inline Editor for yellow/red rows ──
         if status in ("needs_review", "failed"):
-            with st.expander(f"Edit fields for {files[i]['name']}", expanded=False):
-                col_thumb, col_fields = st.columns([1, 2.5])
+            with st.expander("Edit", expanded=False):
+                col_preview, col_fields = st.columns([1, 2.5])
 
-                with col_thumb:
+                with col_preview:
                     thumb = get_thumbnail(temps[i])
                     if thumb:
-                        st.image(thumb, width=180)
+                        st.image(thumb, width=200)
                     else:
                         fb = st.session_state["uploaded_files_bytes"].get(i)
                         if fb:
                             st.video(fb)
 
+                    # Live filename preview
+                    st.markdown('<div class="section-label" style="margin-top:12px;">Output filename</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="fname-box">{build_filename(i)}</div>', unsafe_allow_html=True)
+
                 with col_fields:
+                    # Separate problem fields from OK fields
+                    problem_fields = []
+                    ok_fields = []
                     for field in config["fields"]:
+                        fn = field["name"]
+                        fd = result.get(fn, {"value": "x", "confidence": "low"})
+                        conf = fd.get("confidence", "low") if isinstance(fd, dict) else "low"
+                        matched = fd.get("matched_via", "") if isinstance(fd, dict) else ""
+                        if conf == "low" or matched == "unmatched":
+                            problem_fields.append(field)
+                        else:
+                            ok_fields.append(field)
+
+                    # Show problem fields with dropdowns
+                    if problem_fields:
+                        st.markdown('<div class="section-label">Needs fixing</div>', unsafe_allow_html=True)
+                    for field in problem_fields:
                         fn = field["name"]
                         fd = result.get(fn, {"value": "x", "confidence": "low"})
                         ai_val = fd.get("value", "x") if isinstance(fd, dict) else str(fd)
                         conf = fd.get("confidence", "low") if isinstance(fd, dict) else "low"
                         ai_raw = fd.get("ai_raw", "") if isinstance(fd, dict) else ""
-                        matched_via = fd.get("matched_via", "") if isinstance(fd, dict) else ""
-
-                        # Only show problematic fields expanded
-                        is_problem = conf == "low" or matched_via == "unmatched"
 
                         opts = get_field_options(field)
                         if not opts:
@@ -435,41 +513,77 @@ def screen_dashboard():
                         else:
                             di = 0
 
-                        if is_problem:
-                            hint = f" (AI raw: {ai_raw})" if ai_raw and ai_raw != ai_val else ""
-                            st.markdown(f'<div class="flabel">{field["display_name"]} {tag(conf)}{hint}</div>', unsafe_allow_html=True)
-                            sel = st.selectbox(fn, opts, index=di, key=f"{i}_{fn}", label_visibility="collapsed")
-                            if sel == "custom...":
-                                st.text_input("custom", key=f"{i}_{fn}_custom", label_visibility="collapsed", placeholder="Type value...")
+                        hint = f"  ·  AI suggested: *{ai_raw}*" if ai_raw and ai_raw != ai_val else ""
+                        st.markdown(f'<div class="flabel">{field["display_name"]} {tag(conf)}</div>', unsafe_allow_html=True)
+                        if hint:
+                            st.caption(hint)
+                        sel = st.selectbox(fn, opts, index=di, key=f"{i}_{fn}", label_visibility="collapsed")
+                        if sel == "custom...":
+                            st.text_input("custom", key=f"{i}_{fn}_custom", label_visibility="collapsed", placeholder="Type value...")
+
+                    # OK fields — hidden behind toggle, no dropdowns unless expanded
+                    if ok_fields:
+                        show_all = st.toggle("Show all fields", value=False, key=f"show_all_{i}")
+                        if show_all:
+                            for field in ok_fields:
+                                fn = field["name"]
+                                fd = result.get(fn, {"value": "x", "confidence": "high"})
+                                ai_val = fd.get("value", "x") if isinstance(fd, dict) else str(fd)
+                                conf = fd.get("confidence", "high") if isinstance(fd, dict) else "high"
+
+                                opts = get_field_options(field)
+                                if not opts:
+                                    opts = [ai_val]
+                                if ai_val in opts:
+                                    di = opts.index(ai_val)
+                                elif ai_val and ai_val != "x":
+                                    opts.insert(0, ai_val)
+                                    di = 0
+                                else:
+                                    di = 0
+
+                                st.markdown(f'<div class="flabel">{field["display_name"]} {tag(conf)}</div>', unsafe_allow_html=True)
+                                sel = st.selectbox(fn, opts, index=di, key=f"{i}_{fn}", label_visibility="collapsed")
+                                if sel == "custom...":
+                                    st.text_input("custom", key=f"{i}_{fn}_custom", label_visibility="collapsed", placeholder="Type value...")
                         else:
-                            # Non-problematic: compact display
-                            st.markdown(
-                                f'<div class="flabel">{field["display_name"]} {tag(conf)}'
-                                f' <span style="font-weight:400;color:#787774;">= {ai_val}</span></div>',
-                                unsafe_allow_html=True,
-                            )
-                            # Hidden selectbox to store value
-                            st.selectbox(fn, opts, index=di, key=f"{i}_{fn}", label_visibility="collapsed")
+                            # Still need to store values in session state for filename assembly
+                            for field in ok_fields:
+                                fn = field["name"]
+                                fd = result.get(fn, {"value": "x", "confidence": "high"})
+                                ai_val = fd.get("value", "x") if isinstance(fd, dict) else str(fd)
+                                # Set session state directly without rendering a widget
+                                if f"{i}_{fn}" not in st.session_state:
+                                    st.session_state[f"{i}_{fn}"] = ai_val
+
+        else:
+            # Green rows: store values in session state silently
+            for field in config["fields"]:
+                fn = field["name"]
+                fd = result.get(fn, {"value": "x", "confidence": "high"})
+                ai_val = fd.get("value", "x") if isinstance(fd, dict) else str(fd)
+                if f"{i}_{fn}" not in st.session_state:
+                    st.session_state[f"{i}_{fn}"] = ai_val
 
     # ── Batch Actions Bar ──
     st.markdown("---")
-    sel = st.session_state.get("selected_for_rename", set())
 
     act1, act2, act3 = st.columns([1.5, 1, 1.5])
     with act1:
-        select_all = st.checkbox(
-            f"Select all Ready ({n_ready} files)",
-            value=len(sel) >= n_ready and n_ready > 0,
-            key="select_all_ready",
-        )
-        if select_all:
-            st.session_state["selected_for_rename"] = set(range(n))  # Select all
-        else:
-            st.session_state["selected_for_rename"] = set()
+        sel_set = st.session_state.get("selected_for_rename", set())
+        if st.button(f"Select All ({n})", use_container_width=True):
+            for j in range(n):
+                st.session_state[f"cb_{j}"] = True
+                st.session_state["selected_for_rename"].add(j)
+            st.rerun()
 
     with act2:
         total_selected = len(st.session_state.get("selected_for_rename", set()))
-        st.markdown(f'<div style="text-align:center;padding:8px;font-size:14px;font-weight:600;color:#37352f;">{total_selected} files selected</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="text-align:center;padding:8px;font-size:14px;font-weight:600;color:#37352f;">'
+            f'{total_selected} of {n} selected</div>',
+            unsafe_allow_html=True,
+        )
 
     with act3:
         c_back, c_rename = st.columns(2)
