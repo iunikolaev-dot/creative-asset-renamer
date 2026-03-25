@@ -5,29 +5,13 @@ import os
 from pathlib import Path
 from PIL import Image
 from google import genai
-
-
-def _resize_image_if_needed(file_path: str, max_size: int = 1024) -> str:
-    ext = Path(file_path).suffix.lower()
-    if ext not in (".jpg", ".jpeg", ".png"):
-        return file_path
-
-    with Image.open(file_path) as img:
-        w, h = img.size
-        if max(w, h) <= max_size:
-            return file_path
-
-        ratio = max_size / max(w, h)
-        new_w, new_h = int(w * ratio), int(h * ratio)
-        resized = img.resize((new_w, new_h), Image.LANCZOS)
-
-        resized_path = file_path + "_resized" + ext
-        resized.save(resized_path, quality=85)
-        return resized_path
+from google.genai import types
 
 
 def analyze_with_gemini(file_path: str, prompt: str) -> dict | None:
+    """Send file to Gemini 2.5 Flash. Return parsed JSON dict or None."""
     from core.secrets import get_secret
+
     api_key = get_secret("GEMINI_API_KEY")
     if not api_key:
         return None
@@ -38,15 +22,28 @@ def analyze_with_gemini(file_path: str, prompt: str) -> dict | None:
         ext = Path(file_path).suffix.lower()
         is_video = ext in (".mp4", ".mov", ".webm")
 
-        if not is_video:
-            file_path = _resize_image_if_needed(file_path)
-
-        uploaded = client.files.upload(file=file_path)
-
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[uploaded, prompt],
-        )
+        if is_video:
+            # Videos: send inline bytes
+            video_bytes = open(file_path, "rb").read()
+            mime_map = {".mp4": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm"}
+            mime = mime_map.get(ext, "video/mp4")
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=types.Content(
+                    parts=[
+                        types.Part(inline_data=types.Blob(data=video_bytes, mime_type=mime)),
+                        types.Part(text=prompt),
+                    ]
+                ),
+            )
+        else:
+            # Images: send PIL object directly (resize first)
+            img = Image.open(file_path)
+            img.thumbnail((1024, 1024))
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[img, prompt],
+            )
 
         text = response.text.strip()
         # Strip markdown code fences if present

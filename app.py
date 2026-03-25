@@ -14,110 +14,128 @@ sys.path.insert(0, str(Path(__file__).parent))
 load_dotenv()
 
 from core.config import load_config
-from core.vision import analyze_file
+from core.vision import analyze_file, classify_file_status
 from core.namer import assemble_name, detect_conflicts
+from core.library import ValueLibrary
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Creative Renamer", page_icon="🎨", layout="wide")
 config = load_config()
 
-# ── Session state defaults ───────────────────────────────────────────────────
+# ── Load library ─────────────────────────────────────────────────────────────
+library_dir = str(Path(__file__).parent / config.get("library_dir", "library"))
+library = ValueLibrary(library_dir)
+
+# ── Session state ────────────────────────────────────────────────────────────
 for k, v in {
     "screen": "upload", "scan_results": {}, "uploaded_files_data": [],
-    "uploaded_files_bytes": {}, "temp_paths": [], "selected_file_idx": 0,
-    "versions": {}, "rename_done": False,
+    "uploaded_files_bytes": {}, "temp_paths": [], "statuses": {},
+    "versions": {}, "rename_done": False, "selected_for_rename": set(),
+    "filter_status": "needs_review", "new_custom_values": [],
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ── CSS ──────────────────────────────────────────────────────────────────────
+# ── Notion-style CSS ─────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Reset */
-    .block-container { padding: 1.5rem 2rem 2rem 2rem; max-width: 100%; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    /* Global */
+    html, body, .stApp, .stApp * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important; }
+    .block-container { max-width: 1100px !important; padding: 2rem 1rem 3rem 1rem; margin: 0 auto; }
     header[data-testid="stHeader"] { background: transparent; }
     #MainMenu, footer { visibility: hidden; }
+    section[data-testid="stSidebar"] { display: none; }
 
-    /* Sidebar */
-    section[data-testid="stSidebar"] {
-        background: #f8fafc;
-        border-right: 1px solid #e2e8f0;
-    }
-    section[data-testid="stSidebar"] .block-container { padding-top: 1rem; }
-
-    /* Cards */
-    .card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    }
-
-    /* Section label */
-    .label {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #94a3b8;
-        margin-bottom: 10px;
-    }
-
-    /* Filename preview */
-    .fname-box {
-        background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-        border: 1px solid #c7d2fe;
-        border-radius: 10px;
-        padding: 12px 16px;
-        font-family: 'SF Mono', 'Fira Code', monospace;
-        font-size: 12.5px;
-        color: #312e81;
-        word-break: break-all;
-        line-height: 1.5;
+    /* Typography */
+    .page-title { font-size: 28px; font-weight: 700; color: #191919; margin: 0 0 2px 0; letter-spacing: -0.5px; }
+    .page-sub { font-size: 14px; color: #9b9b9b; margin: 0 0 24px 0; font-weight: 400; }
+    .section-label {
+        font-size: 11px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.8px; color: #b0b0b0; margin-bottom: 8px; padding-bottom: 6px;
+        border-bottom: 1px solid #f0f0f0;
     }
 
     /* Badges */
-    .b { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
-    .b-high { background: #dcfce7; color: #166534; }
-    .b-med { background: #fef9c3; color: #854d0e; }
-    .b-low { background: #fee2e2; color: #991b1b; }
-    .b-auto { background: #f1f5f9; color: #64748b; }
-    .b-man { background: #f1f5f9; color: #64748b; }
-
-    /* Field row */
-    .field-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 2px;
+    .tag {
+        display: inline-block; padding: 1px 7px; border-radius: 4px;
+        font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
+        vertical-align: middle; margin-left: 4px;
     }
-    .field-label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #334155;
-        min-width: 0;
+    .tag-high { background: #dbeddb; color: #2b593f; }
+    .tag-med  { background: #fdecc8; color: #7b5c00; }
+    .tag-low  { background: #ffe2dd; color: #93000a; }
+    .tag-auto { background: #f0f0f0; color: #787774; }
+    .tag-man  { background: #f0f0f0; color: #787774; }
+
+    /* Status cards */
+    .stat-card {
+        border-radius: 8px; padding: 16px 20px; text-align: center;
     }
+    .stat-card h2 { margin: 0; font-size: 32px; font-weight: 700; }
+    .stat-card p { margin: 4px 0 0 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-ready { background: #f0faf0; border: 1px solid #c6e6c6; }
+    .stat-ready h2 { color: #2b593f; }
+    .stat-ready p { color: #5a8a5a; }
+    .stat-review { background: #fef9ef; border: 1px solid #f0dca8; }
+    .stat-review h2 { color: #7b5c00; }
+    .stat-review p { color: #9b7d2a; }
+    .stat-failed { background: #fef2f2; border: 1px solid #f0c0c0; }
+    .stat-failed h2 { color: #93000a; }
+    .stat-failed p { color: #b04040; }
 
-    /* Upload area */
-    .hero { text-align: center; padding: 20px 0 10px 0; }
-    .hero h2 { color: #1e293b; margin-bottom: 4px; }
-    .hero p { color: #64748b; font-size: 14px; }
+    /* File row */
+    .file-row {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 14px; border-radius: 6px; border: 1px solid #f0f0f0;
+        margin-bottom: 6px; font-size: 13px; background: #fff;
+    }
+    .file-row:hover { background: #fafafa; }
+    .file-row .fname { flex: 1; font-family: 'SFMono-Regular', monospace; font-size: 12px; color: #37352f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-row .new-name { flex: 1.5; font-family: 'SFMono-Regular', monospace; font-size: 12px; color: #37352f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-row .arrow { color: #b0b0b0; font-size: 14px; flex-shrink: 0; }
 
-    /* File count pill */
-    .pill {
-        background: #6366f1; color: white; padding: 3px 12px;
-        border-radius: 20px; font-size: 12px; font-weight: 600;
+    /* Dot indicators */
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+    .dot-green { background: #2b593f; }
+    .dot-yellow { background: #d4a017; }
+    .dot-red { background: #c0392b; }
+
+    /* Field label */
+    .flabel { font-size: 12px; font-weight: 600; color: #37352f; margin-bottom: 2px; }
+
+    /* Upload hero */
+    .hero-title { font-size: 30px; font-weight: 700; color: #191919; letter-spacing: -0.5px; margin: 0; }
+    .hero-sub { font-size: 14px; color: #9b9b9b; margin: 4px 0 20px 0; }
+
+    /* Pill */
+    .pill { background: #f0f0f0; color: #37352f; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+
+    /* Filename preview */
+    .fname-box {
+        background: #f7f7f5; border: 1px solid #e8e8e5; border-radius: 6px;
+        padding: 10px 14px; font-family: 'SFMono-Regular', monospace;
+        font-size: 12px; color: #37352f; word-break: break-all; line-height: 1.6;
     }
 
     /* Rename table */
-    .rtable { width: 100%; border-collapse: separate; border-spacing: 0 4px; }
-    .rtable td { padding: 8px 12px; font-size: 13px; }
-    .rtable tr:nth-child(odd) td { background: #f8fafc; border-radius: 6px; }
-    .rtable .old { color: #64748b; font-family: monospace; }
-    .rtable .new { color: #1e293b; font-family: monospace; font-weight: 500; }
-    .rtable .arrow { color: #6366f1; text-align: center; width: 40px; }
+    .rt { width: 100%; border-collapse: collapse; }
+    .rt td { padding: 8px 10px; font-size: 12.5px; border-bottom: 1px solid #f0f0f0; }
+    .rt .o { color: #9b9b9b; font-family: monospace; }
+    .rt .a { color: #b0b0b0; text-align: center; width: 30px; }
+    .rt .n { color: #37352f; font-family: monospace; font-weight: 500; }
+
+    /* Issues tag */
+    .issue-tag {
+        display: inline-block; padding: 2px 8px; border-radius: 4px;
+        font-size: 10px; font-weight: 500; background: #fef3cd; color: #856404;
+        margin-right: 4px; margin-bottom: 2px;
+    }
+
+    /* Selectbox sizing */
+    div[data-baseweb="select"] { font-size: 13px !important; }
+    div[data-baseweb="select"] > div { min-height: 36px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -132,61 +150,58 @@ def save_temp_file(uploaded_file) -> str:
     return temp_path
 
 
-def _extract_video_thumbnail(file_path: str) -> Image.Image | None:
-    """Extract first meaningful frame from video using OpenCV (no ffmpeg needed)."""
-    try:
-        import cv2
-        cap = cv2.VideoCapture(file_path)
-        if not cap.isOpened():
-            return None
-        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        # Jump to 25% of the video for a more representative frame
-        if total > 10:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, total // 4)
-        ret, frame = cap.read()
-        cap.release()
-        if ret and frame is not None:
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            return Image.fromarray(rgb)
-    except Exception:
-        pass
-    return None
-
-
-def show_preview(file_path: str, file_idx: int):
+def get_thumbnail(file_path: str) -> Image.Image | None:
     ext = Path(file_path).suffix.lower()
     if ext in (".jpg", ".jpeg", ".png"):
         try:
-            st.image(Image.open(file_path), use_container_width=True)
+            return Image.open(file_path)
         except Exception:
-            st.caption("Could not load preview")
+            return None
     elif ext in (".mp4", ".mov", ".webm"):
-        # Show thumbnail frame
-        thumb = _extract_video_thumbnail(file_path)
-        if thumb:
-            st.image(thumb, use_container_width=True)
-        # Also show playable video
-        file_bytes = st.session_state["uploaded_files_bytes"].get(file_idx)
-        if file_bytes:
-            st.video(file_bytes)
-        else:
-            try:
-                with open(file_path, "rb") as f:
-                    st.video(f.read())
-            except Exception:
-                if not thumb:
-                    st.caption("Could not load preview")
+        try:
+            import cv2
+            cap = cv2.VideoCapture(file_path)
+            if not cap.isOpened():
+                return None
+            total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            if total > 10:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, total // 4)
+            ret, frame = cap.read()
+            cap.release()
+            if ret and frame is not None:
+                return Image.fromarray(frame[:, :, ::-1])
+        except Exception:
+            return None
+    return None
 
 
-def badge(confidence: str) -> str:
-    m = {"high": ("High", "b-high"), "medium": ("Med", "b-med"), "low": ("Low", "b-low"),
-         "auto": ("Auto", "b-auto"), "manual": ("Manual", "b-man"), "failed": ("Fail", "b-low")}
-    label, cls = m.get(confidence, ("?", "b-low"))
-    return f'<span class="b {cls}">{label}</span>'
+def tag(confidence: str) -> str:
+    m = {"high": ("High", "tag-high"), "medium": ("Med", "tag-med"), "low": ("Low", "tag-low"),
+         "auto": ("Auto", "tag-auto"), "manual": ("Manual", "tag-man"), "failed": ("Fail", "tag-low")}
+    label, cls = m.get(confidence, ("?", "tag-low"))
+    return f'<span class="tag {cls}">{label}</span>'
+
+
+def status_dot(status: str) -> str:
+    cls = {"ready": "dot-green", "needs_review": "dot-yellow", "failed": "dot-red"}.get(status, "dot-yellow")
+    return f'<span class="dot {cls}"></span>'
+
+
+def get_field_options(field: dict) -> list[str]:
+    """Get dropdown options from library CSV or fallback."""
+    name = field["name"]
+    if name in library.fields:
+        opts = list(library.fields[name]["values"])
+    else:
+        opts = []
+    if field.get("allow_custom", False):
+        opts.append("custom...")
+    return opts
 
 
 def build_filename(file_idx: int) -> str:
     result = {}
+    scan = st.session_state["scan_results"].get(file_idx, {})
     for field in config["fields"]:
         key = f"{file_idx}_{field['name']}"
         if key in st.session_state:
@@ -195,17 +210,51 @@ def build_filename(file_idx: int) -> str:
                 val = st.session_state.get(f"{file_idx}_{field['name']}_custom", "x")
             result[field["name"]] = {"value": val}
         else:
-            scan = st.session_state["scan_results"].get(file_idx, {})
             result[field["name"]] = scan.get(field["name"], {"value": "x"})
     ver = st.session_state["versions"].get(file_idx)
     ext = Path(st.session_state["temp_paths"][file_idx]).suffix
     return assemble_name(result, config, version=ver, original_extension=ext)
 
 
+def get_issues(result: dict) -> list[str]:
+    """Get list of fields that need attention."""
+    issues = []
+    for field in config["fields"]:
+        fd = result.get(field["name"], {})
+        if isinstance(fd, dict):
+            conf = fd.get("confidence", "")
+            matched = fd.get("matched_via", "")
+            if conf == "low" or matched == "unmatched":
+                issues.append(field["display_name"])
+    return issues
+
+
 def open_folder(path: str):
     s = platform.system()
-    cmd = {"Darwin": ["open"], "Windows": ["explorer"]}.get(s, ["xdg-open"])
-    subprocess.Popen(cmd + [path])
+    subprocess.Popen({"Darwin": ["open"], "Windows": ["explorer"]}.get(s, ["xdg-open"]) + [path])
+
+
+def collect_custom_values() -> list[dict]:
+    """Find values that were manually entered and don't exist in the library."""
+    new_values = []
+    results = st.session_state["scan_results"]
+    for file_idx in results:
+        for field in config["fields"]:
+            key = f"{file_idx}_{field['name']}"
+            if key in st.session_state and st.session_state[key] == "custom...":
+                custom_val = st.session_state.get(f"{file_idx}_{field['name']}_custom", "")
+                if custom_val and field["name"] in library.fields:
+                    if custom_val.lower() not in library.fields[field["name"]]["entries"]:
+                        new_values.append({"field": field["name"], "value": custom_val.lower()})
+    # Deduplicate
+    seen = set()
+    unique = []
+    for v in new_values:
+        k = (v["field"], v["value"])
+        if k not in seen:
+            seen.add(k)
+            unique.append(v)
+    return unique
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -213,182 +262,75 @@ def open_folder(path: str):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def screen_upload():
+    st.markdown("")
     _, center, _ = st.columns([1, 2, 1])
     with center:
-        st.markdown('<div class="hero"><h2>🎨 Creative Renamer</h2><p>Drop your ad creatives, get structured filenames powered by AI</p></div>', unsafe_allow_html=True)
+        st.markdown('<p class="hero-title">🎨 Creative Renamer</p>', unsafe_allow_html=True)
+        st.markdown('<p class="hero-sub">Drop up to 100 creatives. AI names them. You review exceptions.</p>', unsafe_allow_html=True)
 
-        with st.container():
-            uploaded_files = st.file_uploader(
-                "Upload creatives", type=["jpg", "jpeg", "png", "mp4", "mov", "webm"],
-                accept_multiple_files=True, key="file_uploader", label_visibility="collapsed",
-            )
-
+        uploaded_files = st.file_uploader(
+            "Upload", type=["jpg", "jpeg", "png", "mp4", "mov", "webm"],
+            accept_multiple_files=True, key="file_uploader", label_visibility="collapsed",
+        )
         if uploaded_files:
             st.markdown(f'<span class="pill">{len(uploaded_files)} file{"s" if len(uploaded_files) != 1 else ""}</span>', unsafe_allow_html=True)
 
         st.markdown("")
-
-        who_opts = next((f["allowed_values"] for f in config["fields"] if f["name"] == "who_made_it"), []) + ["custom..."]
-        who = st.selectbox("Who Made It (applies to all)", who_opts, key="who_made_it_global")
+        who_opts = library.get_values("who_made_it") + ["custom..."]
+        who = st.selectbox("Who Made It (applies to all files)", who_opts, key="who_made_it_global")
         if who == "custom...":
             who = st.text_input("Creator name", key="who_made_it_custom")
 
         st.markdown("")
-        if st.button("Scan Files with AI", disabled=not uploaded_files, type="primary", use_container_width=True):
-            temps = []
-            bytes_map = {}
+        n = len(uploaded_files) if uploaded_files else 0
+        btn_label = f"Scan {n} files with AI" if n > 0 else "Scan Files with AI"
+        if st.button(btn_label, disabled=not uploaded_files, type="primary", use_container_width=True):
+            temps, bmap = [], {}
             prog = st.progress(0, text="Preparing...")
             for i, uf in enumerate(uploaded_files):
-                prog.progress(int((i / len(uploaded_files)) * 30), text=f"Saving {i+1}/{len(uploaded_files)}...")
+                prog.progress(int((i / len(uploaded_files)) * 20), text=f"Saving {i+1}/{len(uploaded_files)}...")
                 temps.append(save_temp_file(uf))
-                bytes_map[i] = uf.getvalue()
-
-            st.session_state["temp_paths"] = temps
-            st.session_state["uploaded_files_bytes"] = bytes_map
-            st.session_state["uploaded_files_data"] = [{"name": uf.name, "size": uf.size} for uf in uploaded_files]
+                bmap[i] = uf.getvalue()
+            st.session_state.update({
+                "temp_paths": temps,
+                "uploaded_files_bytes": bmap,
+                "uploaded_files_data": [{"name": uf.name, "size": uf.size} for uf in uploaded_files],
+            })
 
             results = {}
+            statuses = {"ready": [], "needs_review": [], "failed": []}
             for i, tp in enumerate(temps):
-                prog.progress(30 + int((i / len(temps)) * 70), text=f"Scanning {i+1}/{len(temps)}: {uploaded_files[i].name}")
-                results[i] = analyze_file(tp, config, who)
+                pct = 20 + int((i / len(temps)) * 80)
+                prog.progress(pct, text=f"Scanning {i+1}/{len(temps)}: {uploaded_files[i].name}")
+                result = analyze_file(tp, config, who, library)
+                status = classify_file_status(result)
+                results[i] = result
+                statuses[status].append(i)
+
             prog.progress(100, text="Done!")
 
-            st.session_state["scan_results"] = results
-            st.session_state["versions"] = {i: None for i in range(len(temps))}
-            st.session_state["screen"] = "review"
+            # Pre-select all ready files for rename
+            selected = set(statuses["ready"])
+
+            st.session_state.update({
+                "scan_results": results,
+                "statuses": statuses,
+                "versions": {i: None for i in range(len(temps))},
+                "selected_for_rename": selected,
+                "screen": "dashboard",
+            })
             st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SCREEN 2: REVIEW & EDIT
+# SCREEN 2: BATCH DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 
-def screen_review():
+def screen_dashboard():
     results = st.session_state["scan_results"]
     temps = st.session_state["temp_paths"]
     files = st.session_state["uploaded_files_data"]
-    n = len(temps)
-
-    if n == 0:
-        st.warning("No files. Go back to upload.")
-        if st.button("Back"):
-            st.session_state["screen"] = "upload"
-            st.rerun()
-        return
-
-    idx = st.session_state["selected_file_idx"]
-    if idx >= n:
-        idx = 0
-        st.session_state["selected_file_idx"] = 0
-
-    # ── Sidebar: file list ──
-    with st.sidebar:
-        st.markdown("### 🎨 Creative Renamer")
-        st.markdown('<div class="label">Files</div>', unsafe_allow_html=True)
-
-        for i in range(n):
-            ext = Path(files[i]["name"]).suffix.lower()
-            icon = "🖼️" if ext in (".jpg", ".jpeg", ".png") else "🎬"
-            is_sel = (i == idx)
-            btn_type = "primary" if is_sel else "secondary"
-            if st.button(f"{icon}  {files[i]['name']}", key=f"fb_{i}", use_container_width=True, type=btn_type):
-                st.session_state["selected_file_idx"] = i
-                st.rerun()
-
-        st.markdown("---")
-
-        if st.button("📋 Apply shared fields to all", use_container_width=True,
-                     help="Copies Language, Who Made It & Details to all files"):
-            for fname in ("language", "who_made_it", "details"):
-                src = f"{idx}_{fname}"
-                if src in st.session_state:
-                    for j in range(n):
-                        if j != idx:
-                            st.session_state[f"{j}_{fname}"] = st.session_state[src]
-            st.rerun()
-
-        st.markdown("---")
-        if st.button("← Back to Upload", use_container_width=True):
-            st.session_state["screen"] = "upload"
-            st.rerun()
-        if st.button("Continue to Rename →", type="primary", use_container_width=True):
-            st.session_state["screen"] = "confirm"
-            st.rerun()
-
-    # ── Main area: preview + fields ──
-    scan = results.get(idx, {})
-
-    preview_col, fields_col = st.columns([1, 1], gap="large")
-
-    # ── Preview column ──
-    with preview_col:
-        st.markdown(f'<div class="label">Preview — {files[idx]["name"]}</div>', unsafe_allow_html=True)
-
-        with st.container():
-            show_preview(temps[idx], idx)
-
-        provider = scan.get("_provider", "—")
-        st.caption(f"Analyzed by **{provider}**")
-
-        # Filename preview
-        st.markdown("")
-        st.markdown('<div class="label">Generated Filename</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="fname-box">{build_filename(idx)}</div>', unsafe_allow_html=True)
-
-        # Version
-        st.markdown("")
-        vc1, vc2, vc3 = st.columns([2.5, 1, 1])
-        cur_v = st.session_state["versions"].get(idx)
-        with vc1:
-            st.caption(f"Version: **{f'v{cur_v}' if cur_v and cur_v > 1 else '—'}**")
-        with vc2:
-            if st.button("➕", key=f"vu_{idx}", help="Add version"):
-                st.session_state["versions"][idx] = (st.session_state["versions"].get(idx) or 1) + 1
-                st.rerun()
-        with vc3:
-            if st.button("➖", key=f"vd_{idx}", help="Remove version"):
-                c = st.session_state["versions"].get(idx)
-                st.session_state["versions"][idx] = (c - 1) if c and c > 1 else None
-                st.rerun()
-
-    # ── Fields column ──
-    with fields_col:
-        st.markdown('<div class="label">Fields</div>', unsafe_allow_html=True)
-
-        for field in config["fields"]:
-            fn = field["name"]
-            fd = scan.get(fn, {"value": "x", "confidence": "low"})
-            ai_val = fd.get("value", "x") if isinstance(fd, dict) else str(fd)
-            conf = fd.get("confidence", "low") if isinstance(fd, dict) else "low"
-
-            opts = list(field.get("allowed_values", []))
-            if field.get("allow_custom", False):
-                opts.append("custom...")
-
-            if ai_val in opts:
-                di = opts.index(ai_val)
-            elif ai_val and ai_val != "x":
-                opts.insert(0, ai_val)
-                di = 0
-            else:
-                di = 0
-
-            # Field label + badge on one line, dropdown below
-            st.markdown(f'<div class="field-row"><span class="field-label">{field["display_name"]}</span> {badge(conf)}</div>', unsafe_allow_html=True)
-
-            sel = st.selectbox(fn, opts, index=di, key=f"{idx}_{fn}", label_visibility="collapsed")
-
-            if sel == "custom...":
-                st.text_input("Custom value", key=f"{idx}_{fn}_custom", label_visibility="collapsed", placeholder="Type custom value...")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCREEN 3: CONFIRM & RENAME
-# ══════════════════════════════════════════════════════════════════════════════
-
-def screen_confirm():
-    temps = st.session_state["temp_paths"]
-    files = st.session_state["uploaded_files_data"]
+    statuses = st.session_state["statuses"]
     n = len(temps)
 
     if n == 0:
@@ -398,73 +340,238 @@ def screen_confirm():
             st.rerun()
         return
 
-    _, center, _ = st.columns([0.5, 3, 0.5])
+    st.markdown('<p class="page-title">Batch Dashboard</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="page-sub">{n} files scanned — review exceptions, then rename</p>', unsafe_allow_html=True)
 
-    with center:
-        st.markdown("## Confirm & Rename")
-        st.caption(f"{n} files ready")
-        st.markdown("")
+    # ── Summary Stats Bar ──
+    n_ready = len(statuses.get("ready", []))
+    n_review = len(statuses.get("needs_review", []))
+    n_failed = len(statuses.get("failed", []))
 
-        names = detect_conflicts([build_filename(i) for i in range(n)])
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(f'<div class="stat-card stat-ready"><h2>{n_ready}</h2><p>Ready</p></div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown(f'<div class="stat-card stat-review"><h2>{n_review}</h2><p>Needs Review</p></div>', unsafe_allow_html=True)
+    with c3:
+        st.markdown(f'<div class="stat-card stat-failed"><h2>{n_failed}</h2><p>Failed</p></div>', unsafe_allow_html=True)
 
-        # Table
-        rows = ""
-        for i in range(n):
-            rows += f'<tr><td class="old">{files[i]["name"]}</td><td class="arrow">→</td><td class="new">{names[i]}</td></tr>'
-        st.markdown(f'<table class="rtable">{rows}</table>', unsafe_allow_html=True)
+    st.markdown("")
 
-        # Conflicts
-        if len(names) != len(set(names)):
-            st.warning("Duplicate names detected — suffixes (_a, _b) added.")
+    # ── Filter Controls ──
+    filter_options = ["All", "Needs Review", "Ready", "Failed"]
+    default_idx = 1 if n_review > 0 else 0
+    selected_filter = st.radio(
+        "Filter", filter_options, index=default_idx,
+        horizontal=True, key="dash_filter", label_visibility="collapsed",
+    )
 
-        st.markdown("")
+    # Build filtered file list
+    filter_map = {
+        "All": list(range(n)),
+        "Ready": statuses.get("ready", []),
+        "Needs Review": statuses.get("needs_review", []),
+        "Failed": statuses.get("failed", []),
+    }
+    visible_files = filter_map.get(selected_filter, list(range(n)))
 
-        mode = st.radio("Output mode", ["Copy to output folder (recommended)", "Rename in place"], index=0, key="output_mode")
-        out_dir = str(Path(__file__).parent / "renamed")
-        if "Copy" in mode:
-            out_dir = st.text_input("Output folder", value=out_dir, key="output_dir")
+    # ── Batch Table ──
+    for i in visible_files:
+        result = results[i]
+        status = classify_file_status(result)
+        issues = get_issues(result)
+        new_name = build_filename(i)
 
-        st.markdown("")
+        dot = status_dot(status)
+        issues_html = " ".join(f'<span class="issue-tag">{iss}</span>' for iss in issues) if issues else ""
+
+        # Row header
+        st.markdown(
+            f'<div class="file-row">'
+            f'{dot}'
+            f'<span class="fname" title="{files[i]["name"]}">{files[i]["name"]}</span>'
+            f'<span class="arrow">→</span>'
+            f'<span class="new-name" title="{new_name}">{new_name}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if issues_html:
+            st.markdown(f'<div style="margin: -4px 0 6px 26px;">{issues_html}</div>', unsafe_allow_html=True)
+
+        # Inline editor — expander for yellow/red rows
+        if status in ("needs_review", "failed"):
+            with st.expander(f"Edit fields for {files[i]['name']}", expanded=False):
+                col_thumb, col_fields = st.columns([1, 2.5])
+
+                with col_thumb:
+                    thumb = get_thumbnail(temps[i])
+                    if thumb:
+                        st.image(thumb, width=180)
+                    else:
+                        fb = st.session_state["uploaded_files_bytes"].get(i)
+                        if fb:
+                            st.video(fb)
+
+                with col_fields:
+                    for field in config["fields"]:
+                        fn = field["name"]
+                        fd = result.get(fn, {"value": "x", "confidence": "low"})
+                        ai_val = fd.get("value", "x") if isinstance(fd, dict) else str(fd)
+                        conf = fd.get("confidence", "low") if isinstance(fd, dict) else "low"
+                        ai_raw = fd.get("ai_raw", "") if isinstance(fd, dict) else ""
+                        matched_via = fd.get("matched_via", "") if isinstance(fd, dict) else ""
+
+                        # Only show problematic fields expanded
+                        is_problem = conf == "low" or matched_via == "unmatched"
+
+                        opts = get_field_options(field)
+                        if not opts:
+                            opts = [ai_val]
+                        if ai_val in opts:
+                            di = opts.index(ai_val)
+                        elif ai_val and ai_val != "x":
+                            opts.insert(0, ai_val)
+                            di = 0
+                        else:
+                            di = 0
+
+                        if is_problem:
+                            hint = f" (AI raw: {ai_raw})" if ai_raw and ai_raw != ai_val else ""
+                            st.markdown(f'<div class="flabel">{field["display_name"]} {tag(conf)}{hint}</div>', unsafe_allow_html=True)
+                            sel = st.selectbox(fn, opts, index=di, key=f"{i}_{fn}", label_visibility="collapsed")
+                            if sel == "custom...":
+                                st.text_input("custom", key=f"{i}_{fn}_custom", label_visibility="collapsed", placeholder="Type value...")
+                        else:
+                            # Non-problematic: compact display
+                            st.markdown(
+                                f'<div class="flabel">{field["display_name"]} {tag(conf)}'
+                                f' <span style="font-weight:400;color:#787774;">= {ai_val}</span></div>',
+                                unsafe_allow_html=True,
+                            )
+                            # Hidden selectbox to store value
+                            st.selectbox(fn, opts, index=di, key=f"{i}_{fn}", label_visibility="collapsed")
+
+    # ── Batch Actions Bar ──
+    st.markdown("---")
+    sel = st.session_state.get("selected_for_rename", set())
+
+    act1, act2, act3 = st.columns([1.5, 1, 1.5])
+    with act1:
+        select_all = st.checkbox(
+            f"Select all Ready ({n_ready} files)",
+            value=len(sel) >= n_ready and n_ready > 0,
+            key="select_all_ready",
+        )
+        if select_all:
+            st.session_state["selected_for_rename"] = set(range(n))  # Select all
+        else:
+            st.session_state["selected_for_rename"] = set()
+
+    with act2:
+        total_selected = len(st.session_state.get("selected_for_rename", set()))
+        st.markdown(f'<div style="text-align:center;padding:8px;font-size:14px;font-weight:600;color:#37352f;">{total_selected} files selected</div>', unsafe_allow_html=True)
+
+    with act3:
+        c_back, c_rename = st.columns(2)
+        with c_back:
+            if st.button("← Back", use_container_width=True):
+                st.session_state["screen"] = "upload"
+                st.rerun()
+        with c_rename:
+            if st.button("Rename Selected →", type="primary", use_container_width=True,
+                         disabled=total_selected == 0):
+                st.session_state["screen"] = "confirm"
+                st.rerun()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SCREEN 3: CONFIRM & RENAME
+# ══════════════════════════════════════════════════════════════════════════════
+
+def screen_confirm():
+    temps = st.session_state["temp_paths"]
+    files = st.session_state["uploaded_files_data"]
+    selected = st.session_state.get("selected_for_rename", set())
+    indices = sorted(selected)
+    n = len(indices)
+
+    if n == 0:
+        st.warning("No files selected.")
+        if st.button("Back"):
+            st.session_state["screen"] = "dashboard"
+            st.rerun()
+        return
+
+    st.markdown('<p class="page-title">Confirm & Rename</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="page-sub">{n} files ready to rename</p>', unsafe_allow_html=True)
+
+    names = detect_conflicts([build_filename(i) for i in indices])
+
+    rows = "".join(
+        f'<tr><td class="o">{files[indices[j]]["name"]}</td>'
+        f'<td class="a">→</td>'
+        f'<td class="n">{names[j]}</td></tr>'
+        for j in range(n)
+    )
+    st.markdown(f'<table class="rt">{rows}</table>', unsafe_allow_html=True)
+
+    if len(names) != len(set(names)):
+        st.warning("Duplicate names — suffixes added automatically.")
+
+    st.markdown("")
+    mode = st.radio("Output", ["Copy to output folder (recommended)", "Rename in place"], index=0, key="output_mode")
+    out_dir = str(Path(__file__).parent / "renamed")
+    if "Copy" in mode:
+        out_dir = st.text_input("Output folder", value=out_dir, key="output_dir")
+
+    st.markdown("")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("← Back to Dashboard", use_container_width=True):
+            st.session_state["screen"] = "dashboard"
+            st.rerun()
+    with c2:
+        if st.button(f"Rename All {n} Files", type="primary", use_container_width=True):
+            os.makedirs(out_dir, exist_ok=True)
+            prog = st.progress(0)
+            for j, idx in enumerate(indices):
+                prog.progress(int(((j + 1) / n) * 100), text=f"{j+1}/{n}")
+                shutil.copy2(temps[idx], os.path.join(out_dir, names[j]))
+            prog.progress(100, text="Done!")
+            st.session_state.update({"rename_done": True, "output_dir": out_dir})
+            st.rerun()
+
+    if st.session_state.get("rename_done"):
+        d = st.session_state.get("output_dir", out_dir)
+        st.success(f"Done! {n} files renamed in `{d}`")
+
+        # Check for custom values to add to library
+        new_vals = collect_custom_values()
+        if new_vals:
+            st.markdown("---")
+            st.markdown(f"**You used {len(new_vals)} new value(s) not in the library.** Add them?")
+            for nv in new_vals:
+                st.markdown(f"- `{nv['field']}`: **{nv['value']}**")
+            if st.button("Add to Library", type="primary"):
+                for nv in new_vals:
+                    library.add_value(nv["field"], nv["value"])
+                st.success("Added! Future scans will include these values.")
+
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("← Back to Review", use_container_width=True):
-                st.session_state["screen"] = "review"
-                st.rerun()
+            if st.button("📂 Open Folder", type="primary", use_container_width=True):
+                open_folder(d)
         with c2:
-            if st.button("Rename All", type="primary", use_container_width=True):
-                os.makedirs(out_dir, exist_ok=True)
-                prog = st.progress(0)
-                ok = 0
-                for i in range(n):
-                    prog.progress(int(((i + 1) / n) * 100), text=f"Renaming {i+1}/{n}...")
-                    src = temps[i]
-                    dst = os.path.join(out_dir, names[i])
-                    try:
-                        shutil.copy2(src, dst)
-                        ok += 1
-                    except Exception as e:
-                        st.error(f"Failed: {files[i]['name']} — {e}")
-                prog.progress(100, text="Done!")
-                st.session_state["rename_done"] = True
-                st.session_state["output_dir"] = out_dir
+            if st.button("🔄 Start Over", use_container_width=True):
+                for k in list(st.session_state.keys()):
+                    del st.session_state[k]
                 st.rerun()
 
-        if st.session_state.get("rename_done"):
-            d = st.session_state.get("output_dir", out_dir)
-            st.success(f"All files renamed! Saved to `{d}`")
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("📂 Open Folder", type="primary", use_container_width=True):
-                    open_folder(d)
-            with c2:
-                if st.button("🔄 Start Over", use_container_width=True):
-                    for k in list(st.session_state.keys()):
-                        del st.session_state[k]
-                    st.rerun()
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# ROUTER
-# ══════════════════════════════════════════════════════════════════════════════
-
-{"upload": screen_upload, "review": screen_review, "confirm": screen_confirm}[st.session_state.get("screen", "upload")]()
+# ── Router ───────────────────────────────────────────────────────────────────
+{
+    "upload": screen_upload,
+    "dashboard": screen_dashboard,
+    "review": screen_dashboard,  # Backward compat if session has old value
+    "confirm": screen_confirm,
+}[st.session_state.get("screen", "upload")]()

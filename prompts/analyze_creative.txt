@@ -1,59 +1,29 @@
 You are analyzing an ad creative for a BNPL (Buy Now Pay Later) fintech app called Tabby, operating in Saudi Arabia and UAE.
 
-IMPORTANT: For each field below, a LIBRARY of known values is provided. You MUST pick from the library values first. Only suggest a new value if NONE of the library values fit at all.
+Analyze the visual content and return ONLY a valid JSON object with NO markdown formatting, NO backticks, NO explanation. Just raw JSON.
 
-IMPORTANT: Values must use SPACES between words, NOT underscores. Underscores are reserved as field separators in the filename. Example: "app ui" not "app_ui", "pay in 4" not "pay_in_4".
-
-Analyze the visual content and return ONLY a valid JSON object with NO markdown formatting, NO backticks, NO explanation text. Just the raw JSON.
+For each field, you MUST select from the allowed values listed below. If no value fits, use your best guess but set confidence to "low".
 
 {
-  "topic": {
-    "value": "<LIBRARY: deals, ugc, ai, motion, meme, generic, app, abstract, quizz, awareness — or suggest new if none fit>",
-    "confidence": "<high|medium|low>"
-  },
-  "main_object": {
-    "value": "<LIBRARY: abstract, cat, electronics, female, generic, hook intro, items, man, two man, shoe, associations, zero, chat, sloth, check, dominoes, people, text, countdown, girl, couple, podcast, camel, kid, tabby app, three man, movie, crowd, puzzle, cartoon, books, airplane, toy, sticker, paper, price tag, travel bag, car, art sculpture, building, fragrance — or suggest new if none fit>",
-    "confidence": "<high|medium|low>"
-  },
-  "main_usp": {
-    "value": "<LIBRARY: black friday, brand tabby, zero fees, gaming, hands down, ramadan, offline, pay in 4, product features, that one friend, tabbyday, SND, do more with your money, bukhoor and home, best things, single's day, white friday — or suggest new if none fit>",
-    "confidence": "<high|medium|low>"
-  },
-  "object_option_1": {
-    "value": "<LIBRARY: abstract, airplane, branded assets, amazon, app, arab dad, arabic clothes, arabic face, camera, carousel, big purchase, black friday, bloom, boss, boy, brand, furniture, cat, hectic days, deals, female, genie, laughing, road, devices, dreams, football, tiger, five cats, inflated, guy, hamster, helicopter, homebox, items, man, melisha, namshi, check, playstation, popular meme cat, ramadan, bukhoor and home, shein, shopping, smile, snicker, campfire, two man, makeup, ksacity, arabian background, tom, black, tea without desert, chair, handwriting, landscape, bucket, outfit, speaking, dad permission, things in 2026, bratz, beard, volcano, people, relax, kid, painting, surfing, landmark, crowd, qamar, none — or suggest new if none fit>",
-    "confidence": "<high|medium|low>"
-  },
-  "object_option_2": {
-    "value": "<LIBRARY: abstract, amazon, arabic, boom, brand, brother, cat, roller skates, court scene, dancing, daughter, drive away, hook, house items, in-store map, female, sea, logo, long hair, mall, man, new year new me, notes eyes, october, one man dancing, one man dancing face, ramadan, white, reborn cta, son, studio, tabby logo, title, two men dancing, karam 2, zero, numbers, chat, conflict, laptop, smartphone, homebox, ninceone, noon, trendyol, sport, electronics, interface, travel, car, emotions, arabic coffee, desert, fitting room, clarity, hands, big things, speaking, app, scarf, card tap, goodbye, vehicle action, spa, canvas, riyadh, golden scent, walking, none — or suggest new if none fit>",
-    "confidence": "<high|medium|low>"
-  },
-  "language": {
-    "value": "<ar|en|mixed|none based on visible text overlays>",
-    "confidence": "<high|medium|low>"
-  },
-  "details": {
-    "value": "<LIBRARY: concept 1-6, concept 11, electronics, variation 1-13, cage, cash or card, store, faces, some things, 11.11, low quality, european, ai abnormal, deals, arabic apparel, sunset, none — or suggest new if none fit>",
-    "confidence": "<high|medium|low>"
-  },
-  "sound_type": {
-    "value": "<LIBRARY: chill, rock, dubstep, arabic, asmr, piano, voiceover, silent, none — for images always return 'none'>",
-    "confidence": "<high|medium|low>"
-  },
-  "background": {
-    "value": "<LIBRARY: shopping mall, home, public, car, no, crystals, black, solid, gradient, photo, blurred, patterned — or suggest new if none fit>",
-    "confidence": "<high|medium|low>"
-  },
-  "hook": {
-    "value": "<LIBRARY: 4 things to hear, exciting tips about, gaming, hook, lady running, meme, no hook, same things, ugc, where money count, deals, zero, unexpected, hate surprises, none — or suggest new if none fit>",
-    "confidence": "<high|medium|low>"
-  }
+  "topic": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "main_object": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "main_usp": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "object_option_1": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "object_option_2": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "language": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "details": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "sound_type": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "background": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "main_color": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"},
+  "hook": {"value": "<SELECT FROM ALLOWED VALUES>", "confidence": "<high|medium|low>"}
 }
 
 Rules:
-- ALL string values must be lowercase with SPACES between words (NOT underscores)
-- ALWAYS prefer library values over inventing new ones
-- Return ONLY the JSON object. No text before or after it.
-- If you cannot determine a field, set confidence to "low" and provide your best guess from the library
-- For video with multiple frames: analyze all frames as one creative, not individually
-- Pay special attention to Arabic text - detect language accurately
-- For main_object: describe what is VISUALLY dominant in the image (people, items, text, etc.) — do NOT describe the app interface unless the creative is literally a screenshot of the Tabby app
+- You MUST select values from the ALLOWED VALUES list below. Do NOT invent new values.
+- All values must be lowercase with SPACES between words (NOT underscores). Underscores are field separators.
+- Return ONLY JSON, nothing else
+- If unsure, set confidence to "low"
+- For video: analyze all frames as one creative
+- For images: sound_type must be "none"
+- Pay attention to Arabic text - detect language accurately
+- For main_object: describe what is VISUALLY dominant (people, items, text, etc.) — do NOT say "app ui" unless it is literally a screenshot of the Tabby app interface

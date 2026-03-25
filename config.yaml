@@ -1,359 +1,94 @@
 separator: "_"
 empty_placeholder: "x"
 max_filename_length: 200
+library_dir: "library/"
 
 fields:
   - name: ad_format
     display_name: "Ad Format"
     position: 1
-    category: standard
     detection: auto
-    allowed_values: [image, video, carousel, feed, post]
 
   - name: topic
     display_name: "Topic"
     position: 2
-    category: standard
     detection: ai_suggested
-    allowed_values: [deals, ugc, ai, motion, meme, generic, app, abstract, quizz, awareness]
+    library_file: "topic.csv"
     allow_custom: true
 
   - name: who_made_it
     display_name: "Who Made It"
     position: 3
-    category: standard
     detection: manual
-    allowed_values: [joy, wajd, shaker, xenia, tabby team, ai, tala, maria, david, victor, superside]
+    library_file: "who_made_it.csv"
     allow_custom: true
     persist_in_session: true
 
   - name: main_object
     display_name: "Main Object"
     position: 4
-    category: standard
     detection: ai_suggested
-    allowed_values:
-      - abstract
-      - cat
-      - electronics
-      - female
-      - generic
-      - hook intro
-      - items
-      - man
-      - two man
-      - shoe
-      - associations
-      - zero
-      - chat
-      - sloth
-      - check
-      - dominoes
-      - people
-      - text
-      - countdown
-      - girl
-      - couple
-      - podcast
-      - camel
-      - kid
-      - tabby app
-      - three man
-      - movie
-      - crowd
-      - puzzle
-      - cartoon
-      - books
-      - airplane
-      - toy
-      - sticker
-      - paper
-      - price tag
-      - travel bag
-      - car
-      - art sculpture
-      - building
-      - fragrance
+    library_file: "main_object.csv"
     allow_custom: true
 
   - name: main_usp
     display_name: "Main USP"
     position: 5
-    category: standard
     detection: ai_suggested
-    allowed_values:
-      - black friday
-      - brand tabby
-      - zero fees
-      - gaming
-      - hands down
-      - ramadan
-      - offline
-      - pay in 4
-      - product features
-      - that one friend
-      - tabbyday
-      - SND
-      - do more with your money
-      - bukhoor and home
-      - best things
-      - "single's day"
-      - white friday
+    library_file: "main_usp.csv"
     allow_custom: true
 
   - name: object_option_1
     display_name: "Object Option 1"
     position: 6
-    category: testing
     detection: ai_suggested
-    allowed_values:
-      - abstract
-      - airplane
-      - branded assets
-      - amazon
-      - app
-      - arab dad
-      - arabic clothes
-      - arabic face
-      - camera
-      - carousel
-      - big purchase
-      - black friday
-      - bloom
-      - boss
-      - boy
-      - brand
-      - furniture
-      - cat
-      - hectic days
-      - deals
-      - female
-      - genie
-      - laughing
-      - road
-      - devices
-      - dreams
-      - football
-      - tiger
-      - five cats
-      - inflated
-      - guy
-      - hamster
-      - helicopter
-      - homebox
-      - items
-      - man
-      - melisha
-      - namshi
-      - check
-      - playstation
-      - popular meme cat
-      - ramadan
-      - bukhoor and home
-      - shein
-      - shopping
-      - smile
-      - snicker
-      - campfire
-      - two man
-      - makeup
-      - ksacity
-      - arabian background
-      - tom
-      - black
-      - tea without desert
-      - chair
-      - handwriting
-      - landscape
-      - bucket
-      - outfit
-      - speaking
-      - dad permission
-      - things in 2026
-      - bratz
-      - beard
-      - volcano
-      - people
-      - relax
-      - kid
-      - painting
-      - surfing
-      - landmark
-      - crowd
-      - qamar
-      - none
+    library_file: "object_option_1.csv"
     allow_custom: true
 
   - name: object_option_2
     display_name: "Object Option 2"
     position: 7
-    category: testing
     detection: ai_suggested
-    allowed_values:
-      - abstract
-      - amazon
-      - arabic
-      - boom
-      - brand
-      - brother
-      - cat
-      - roller skates
-      - court scene
-      - dancing
-      - daughter
-      - drive away
-      - hook
-      - house items
-      - in-store map
-      - female
-      - sea
-      - logo
-      - long hair
-      - mall
-      - man
-      - new year new me
-      - notes eyes
-      - october
-      - one man dancing
-      - one man dancing face
-      - ramadan
-      - white
-      - reborn cta
-      - son
-      - studio
-      - tabby logo
-      - title
-      - two men dancing
-      - karam 2
-      - zero
-      - numbers
-      - chat
-      - conflict
-      - laptop
-      - smartphone
-      - homebox
-      - ninceone
-      - noon
-      - trendyol
-      - sport
-      - electronics
-      - interface
-      - travel
-      - car
-      - emotions
-      - arabic coffee
-      - desert
-      - fitting room
-      - clarity
-      - hands
-      - big things
-      - speaking
-      - app
-      - scarf
-      - card tap
-      - goodbye
-      - vehicle action
-      - spa
-      - canvas
-      - riyadh
-      - golden scent
-      - walking
-      - none
+    library_file: "object_option_2.csv"
     allow_custom: true
 
   - name: language
     display_name: "Language"
     position: 8
-    category: testing
     detection: ai_detected
-    allowed_values: [ar, en, mixed, none]
+    library_file: "language.csv"
 
   - name: details
     display_name: "Details"
     position: 9
-    category: testing
     detection: ai_suggested
-    allowed_values:
-      - concept 1
-      - concept 2
-      - concept 3
-      - concept 4
-      - concept 5
-      - concept 6
-      - concept 11
-      - electronics
-      - variation 1
-      - variation 2
-      - variation 3
-      - variation 4
-      - variation 5
-      - variation 6
-      - variation 7
-      - variation 8
-      - variation 9
-      - variation 10
-      - variation 11
-      - variation 12
-      - variation 13
-      - cage
-      - cash or card
-      - store
-      - faces
-      - some things
-      - "11.11"
-      - low quality
-      - european
-      - ai abnormal
-      - deals
-      - arabic apparel
-      - sunset
-      - none
+    library_file: "details.csv"
     allow_custom: true
 
   - name: sound_type
     display_name: "Sound Type"
     position: 10
-    category: testing
     detection: ai_detected
-    allowed_values: [chill, rock, dubstep, arabic, asmr, piano, voiceover, silent, none]
+    library_file: "sound_type.csv"
 
   - name: background
     display_name: "Background"
     position: 11
-    category: testing
     detection: ai_detected
-    allowed_values: [shopping mall, home, public, car, no, crystals, black, solid, gradient, photo, blurred, patterned]
-    allow_custom: true
+    library_file: "background.csv"
 
   - name: main_color
     display_name: "Main Color"
     position: 12
-    category: testing
     detection: auto_ai
-    allowed_values: [branded, colorful, dark, green, "green / dark", no, room lights, honey, purple, white, black, blue, red, yellow, orange, pink, brown, gray]
+    library_file: "main_color.csv"
     allow_custom: true
 
   - name: hook
     display_name: "Hook"
     position: 13
-    category: testing
     detection: ai_suggested
-    allowed_values:
-      - 4 things to hear
-      - exciting tips about
-      - gaming
-      - hook
-      - lady running
-      - meme
-      - no hook
-      - same things
-      - ugc
-      - where money count
-      - deals
-      - zero
-      - unexpected
-      - hate surprises
-      - none
+    library_file: "hook.csv"
     allow_custom: true
 
 color_map:
@@ -375,11 +110,11 @@ color_map:
 ai:
   primary:
     provider: gemini
-    model: gemini-2.0-flash
+    model: gemini-2.5-flash
     video_mode: native
   fallback:
     provider: openai
-    model: gpt-5.4
+    model: gpt-4o
     video_mode: frames
     video_frames: 3
   fallback_trigger: 3

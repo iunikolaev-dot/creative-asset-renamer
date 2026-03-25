@@ -1,0 +1,13 @@
+value,aliases,description
+shopping mall,"mall,shopping center,retail center",Shopping mall background
+home,"house,interior,room,living room",Home/interior background
+public,"outdoor,street,city,urban",Public/outdoor background
+car,"vehicle,automobile,driving",Car interior/exterior
+no,"none,transparent,empty,n/a",No background
+crystals,"crystal,gem,gemstone,sparkle",Crystal/sparkle background
+black,"dark,noir,black bg",Black background
+solid,"flat,single color,plain",Solid color background
+gradient,"fade,ombre,color transition",Gradient background
+photo,"photograph,real image,photographic",Photo background
+blurred,"blur,bokeh,out of focus",Blurred background
+patterned,"pattern,texture,repeating",Patterned background

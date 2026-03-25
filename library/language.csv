@@ -1,0 +1,5 @@
+value,aliases,description
+ar,"arabic,عربي,arab",Arabic language
+en,"english,eng",English language
+mixed,"bilingual,both,ar en,en ar",Mixed Arabic and English
+none,"no text,silent,no language,na",No visible text

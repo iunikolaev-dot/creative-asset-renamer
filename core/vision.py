@@ -6,12 +6,9 @@ from pathlib import Path
 from core.vision_gemini import analyze_with_gemini
 from core.vision_openai import analyze_with_openai
 from core.colors import extract_dominant_color
+from core.library import ValueLibrary
+from core.prompt_builder import build_prompt_with_library
 from core.scanner import IMAGE_EXTENSIONS, VIDEO_EXTENSIONS
-
-
-def load_prompt(prompt_path: str = "prompts/analyze_creative.txt") -> str:
-    with open(Path(__file__).parent.parent / prompt_path, "r") as f:
-        return f.read()
 
 
 def detect_format(file_path: str) -> str:
@@ -36,32 +33,30 @@ def _normalize_ai_value(value: str) -> str:
     # Convert underscores to spaces — underscores are field separators, not for within values
     value = value.replace("_", " ")
     value = re.sub(r"[^a-z0-9 /\-]", "", value)
-    # Collapse multiple spaces
     value = re.sub(r" +", " ", value).strip()
     return value if value else "x"
 
 
-def _postprocess_ai_result(ai_result: dict, config: dict) -> dict:
-    fields_by_name = {f["name"]: f for f in config["fields"]}
+def classify_file_status(result: dict) -> str:
+    """Classify a file as 'ready', 'needs_review', or 'failed'."""
+    low_count = 0
+    failed_count = 0
+    for f in result.values():
+        if isinstance(f, dict):
+            conf = f.get("confidence", "")
+            if conf == "low":
+                low_count += 1
+            elif conf == "failed":
+                failed_count += 1
+    if failed_count > 0 or low_count >= 3:
+        return "failed"
+    elif low_count > 0:
+        return "needs_review"
+    return "ready"
 
-    for field_name, field_data in ai_result.items():
-        if not isinstance(field_data, dict):
-            continue
 
-        raw_value = field_data.get("value", "x")
-        normalized = _normalize_ai_value(raw_value)
-        field_data["value"] = normalized
-
-        field_def = fields_by_name.get(field_name)
-        if field_def and normalized not in field_def.get("allowed_values", []):
-            if field_data.get("confidence") != "low":
-                field_data["confidence"] = "low"
-
-    return ai_result
-
-
-def analyze_file(file_path: str, config: dict, who_made_it: str) -> dict:
-    prompt = load_prompt()
+def analyze_file(file_path: str, config: dict, who_made_it: str, library: ValueLibrary) -> dict:
+    prompt = build_prompt_with_library(config, library)
 
     result = {}
 
@@ -69,7 +64,7 @@ def analyze_file(file_path: str, config: dict, who_made_it: str) -> dict:
     ad_format = detect_format(file_path)
     result["ad_format"] = {"value": ad_format, "confidence": "auto"}
 
-    # Color detection (images only, for videos use first frame or skip)
+    # Color detection (images only)
     ext = Path(file_path).suffix.lower()
     if ext in IMAGE_EXTENSIONS:
         color = extract_dominant_color(file_path, config.get("color_map", {}))
@@ -86,12 +81,23 @@ def analyze_file(file_path: str, config: dict, who_made_it: str) -> dict:
             ai_result = fallback
             provider_used = "openai"
 
-    # Step 4: Post-process and merge
+    # Step 4: Library matching — map AI suggestions to canonical values
     if ai_result:
-        ai_result = _postprocess_ai_result(ai_result, config)
         for field_name, field_data in ai_result.items():
-            if field_name not in result:  # Don't override auto-detected fields
-                result[field_name] = field_data
+            if not isinstance(field_data, dict):
+                continue
+            if field_name in result:  # Don't override auto-detected fields
+                continue
+
+            raw_value = _normalize_ai_value(field_data.get("value", "x"))
+            match = library.match(field_name, raw_value)
+
+            result[field_name] = {
+                "value": match["value"],
+                "confidence": match["confidence"],
+                "ai_raw": raw_value,
+                "matched_via": match["matched_via"],
+            }
 
     # Manual fields
     result["who_made_it"] = {"value": who_made_it if who_made_it else "x", "confidence": "manual"}
