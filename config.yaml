@@ -1,0 +1,135 @@
+separator: "_"
+empty_placeholder: "x"
+max_filename_length: 200
+
+fields:
+  - name: ad_format
+    display_name: "Ad Format"
+    position: 1
+    category: standard
+    detection: auto
+    allowed_values: [video, image]
+
+  - name: topic
+    display_name: "Topic"
+    position: 2
+    category: standard
+    detection: ai_suggested
+    allowed_values: [meme, product, lifestyle, ugc, promo, tutorial, other]
+    allow_custom: true
+
+  - name: who_made_it
+    display_name: "Who Made It"
+    position: 3
+    category: standard
+    detection: manual
+    allowed_values: [tala, ahmed, agency_x, inhouse]
+    allow_custom: true
+    persist_in_session: true
+
+  - name: main_object
+    display_name: "Main Object"
+    position: 4
+    category: standard
+    detection: ai_suggested
+    allowed_values: [people, product, app_ui, text_only, merchant, other]
+    allow_custom: true
+
+  - name: main_usp
+    display_name: "Main USP"
+    position: 5
+    category: standard
+    detection: ai_suggested
+    allowed_values: [pay_in_4, cashback, no_fees, shop_now, free_delivery, split_payments, other]
+    allow_custom: true
+
+  - name: object_option_1
+    display_name: "Object Option 1"
+    position: 6
+    category: testing
+    detection: ai_suggested
+    allowed_values: [arabic_clothes, electronics, groceries, furniture, beauty, food, fashion, none, other]
+    allow_custom: true
+
+  - name: object_option_2
+    display_name: "Object Option 2"
+    position: 7
+    category: testing
+    detection: ai_suggested
+    allowed_values: [app, card, qr_code, logo, phone, none, other]
+    allow_custom: true
+
+  - name: language
+    display_name: "Language"
+    position: 8
+    category: testing
+    detection: ai_detected
+    allowed_values: [ar, en, mixed, none]
+
+  - name: details
+    display_name: "Details"
+    position: 9
+    category: testing
+    detection: ai_suggested
+    allowed_values: [ramadan, eid, mall, outdoor, arabic_apparel, back_to_school, none, other]
+    allow_custom: true
+
+  - name: sound_type
+    display_name: "Sound Type"
+    position: 10
+    category: testing
+    detection: ai_detected
+    allowed_values: [music, voiceover, sfx, silent, none]
+
+  - name: background
+    display_name: "Background"
+    position: 11
+    category: testing
+    detection: ai_detected
+    allowed_values: [solid, gradient, photo, blurred, patterned, other]
+
+  - name: main_color
+    display_name: "Main Color"
+    position: 12
+    category: testing
+    detection: auto_ai
+    allowed_values: [purple, green, white, black, blue, red, yellow, orange, pink, brand_blue, brown, gray, other]
+    allow_custom: true
+
+  - name: hook
+    display_name: "Hook"
+    position: 13
+    category: testing
+    detection: ai_suggested
+    allowed_values: [question, stat, testimonial, offer, cta, none, other]
+    allow_custom: true
+
+color_map:
+  "#4B0082": purple
+  "#800080": purple
+  "#008000": green
+  "#00FF00": green
+  "#FFFFFF": white
+  "#000000": black
+  "#0000FF": blue
+  "#1A56DB": brand_blue
+  "#FF0000": red
+  "#FFFF00": yellow
+  "#FFA500": orange
+  "#FFC0CB": pink
+  "#A52A2A": brown
+  "#808080": gray
+
+ai:
+  primary:
+    provider: gemini
+    model: gemini-2.0-flash
+    video_mode: native
+  fallback:
+    provider: openai
+    model: gpt-5.4
+    video_mode: frames
+    video_frames: 3
+  fallback_trigger: 3
+  max_tokens: 1000
+  image_max_size: 1024
