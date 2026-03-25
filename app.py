@@ -24,11 +24,7 @@ from core.scanner import extract_video_frame
 st.set_page_config(page_title="Creative Asset Renamer", layout="wide")
 
 # ── Load config ──────────────────────────────────────────────────────────────
-@st.cache_data
-def get_config():
-    return load_config()
-
-config = get_config()
+config = load_config()
 
 # ── Session state defaults ───────────────────────────────────────────────────
 if "screen" not in st.session_state:
