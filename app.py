@@ -584,12 +584,64 @@ def screen_dashboard():
                 if f"{i}_{fn}" not in st.session_state:
                     st.session_state[f"{i}_{fn}"] = ai_val
 
+    # ── Bulk Edit Panel ──
+    sel_set = st.session_state.get("selected_for_rename", set())
+    total_selected = len(sel_set)
+
+    if total_selected >= 2:
+        st.markdown("---")
+        st.markdown(
+            f'<div class="section-label">Bulk Edit — {total_selected} files selected</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Let user pick which fields to bulk-edit
+        field_names = [f["display_name"] for f in config["fields"]]
+        field_map = {f["display_name"]: f for f in config["fields"]}
+        chosen_fields = st.multiselect(
+            "Fields to change", field_names,
+            key="bulk_fields", placeholder="Pick fields to edit...",
+        )
+
+        bulk_values = {}
+        if chosen_fields:
+            cols = st.columns(min(len(chosen_fields), 3))
+            for ci, display_name in enumerate(chosen_fields):
+                field = field_map[display_name]
+                fn = field["name"]
+                with cols[ci % min(len(chosen_fields), 3)]:
+                    opts = get_field_options(field)
+                    if not opts:
+                        opts = ["x"]
+                    st.markdown(f'<div class="flabel">{display_name}</div>', unsafe_allow_html=True)
+                    val = st.selectbox(
+                        fn, opts, key=f"bulk_{fn}", label_visibility="collapsed",
+                    )
+                    if val == "custom...":
+                        val = st.text_input(
+                            "custom", key=f"bulk_{fn}_custom",
+                            label_visibility="collapsed", placeholder="Type value...",
+                        )
+                    bulk_values[fn] = val
+
+            if st.button(f"Apply to {total_selected} files", type="primary"):
+                for idx in sel_set:
+                    for fn, val in bulk_values.items():
+                        st.session_state[f"{idx}_{fn}"] = val
+                        # Also update scan_results so status/issues refresh
+                        if idx in results and fn in results[idx]:
+                            if isinstance(results[idx][fn], dict):
+                                results[idx][fn]["value"] = val
+                                results[idx][fn]["confidence"] = "high"
+                                results[idx][fn]["matched_via"] = "manual"
+                st.success(f"Updated {len(bulk_values)} field(s) across {total_selected} files.")
+                st.rerun()
+
     # ── Batch Actions Bar ──
     st.markdown("---")
 
     act1, act2, act3 = st.columns([1.5, 1, 1.5])
     with act1:
-        sel_set = st.session_state.get("selected_for_rename", set())
         if st.button(f"Select All ({n})", use_container_width=True):
             for j in range(n):
                 st.session_state[f"cb_{j}"] = True
@@ -597,7 +649,6 @@ def screen_dashboard():
             st.rerun()
 
     with act2:
-        total_selected = len(st.session_state.get("selected_for_rename", set()))
         st.markdown(
             f'<div style="text-align:center;padding:8px;font-size:14px;font-weight:600;color:#37352f;">'
             f'{total_selected} of {n} selected</div>',
