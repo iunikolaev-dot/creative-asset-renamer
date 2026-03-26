@@ -136,6 +136,15 @@ st.markdown("""
     /* Selectbox sizing */
     div[data-baseweb="select"] { font-size: 13px !important; }
     div[data-baseweb="select"] > div { min-height: 36px !important; }
+
+    /* Expand file uploader list to show ~10 rows */
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFileList"] {
+        max-height: 420px !important;
+        overflow-y: auto !important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderFileList"] > div {
+        max-height: 420px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -273,7 +282,17 @@ def screen_upload():
             accept_multiple_files=True, key="file_uploader", label_visibility="collapsed",
         )
         if uploaded_files:
-            st.markdown(f'<span class="pill">{len(uploaded_files)} file{"s" if len(uploaded_files) != 1 else ""}</span>', unsafe_allow_html=True)
+            img_exts = {".jpg", ".jpeg", ".png"}
+            vid_exts = {".mp4", ".mov", ".webm"}
+            n_img = sum(1 for f in uploaded_files if Path(f.name).suffix.lower() in img_exts)
+            n_vid = sum(1 for f in uploaded_files if Path(f.name).suffix.lower() in vid_exts)
+            parts = []
+            if n_img:
+                parts.append(f"{n_img} image{'s' if n_img != 1 else ''}")
+            if n_vid:
+                parts.append(f"{n_vid} video{'s' if n_vid != 1 else ''}")
+            count_text = " · ".join(parts) if parts else f"{len(uploaded_files)} files"
+            st.markdown(f'<span class="pill">{count_text}</span>', unsafe_allow_html=True)
 
         st.markdown("")
         who_opts = library.get_values("who_made_it") + ["custom..."]
