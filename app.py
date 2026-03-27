@@ -344,7 +344,7 @@ def screen_upload():
             unsafe_allow_html=True,
         )
 
-        sf_col1, sf_col2 = st.columns(2)
+        sf_col1, sf_col2, sf_col3 = st.columns(3)
 
         with sf_col1:
             st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Who Made It</p>', unsafe_allow_html=True)
@@ -360,21 +360,12 @@ def screen_upload():
             if topic == "custom...":
                 topic = st.text_input("topic_custom", key="topic_custom_input", placeholder="Type topic...", label_visibility="collapsed")
 
-        sf_col3, sf_col4 = st.columns(2)
-
         with sf_col3:
-            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Main Object <span style="color:#9ca3af;font-weight:400">(optional)</span></p>', unsafe_allow_html=True)
-            obj_opts = ["—"] + library.get_values("main_object") + ["custom..."]
-            main_object = st.selectbox("main_object", obj_opts, key="main_object_global", label_visibility="collapsed")
-            if main_object == "custom...":
-                main_object = st.text_input("main_object_custom", key="main_object_custom_input", placeholder="Type object...", label_visibility="collapsed")
-
-        with sf_col4:
-            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Main USP <span style="color:#9ca3af;font-weight:400">(optional)</span></p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Main Product <span style="color:#9ca3af;font-weight:400">(optional)</span></p>', unsafe_allow_html=True)
             usp_opts = ["—"] + library.get_values("main_usp") + ["custom..."]
             main_usp = st.selectbox("main_usp", usp_opts, key="main_usp_global", label_visibility="collapsed")
             if main_usp == "custom...":
-                main_usp = st.text_input("main_usp_custom", key="main_usp_custom_input", placeholder="Type USP...", label_visibility="collapsed")
+                main_usp = st.text_input("main_usp_custom", key="main_usp_custom_input", placeholder="Type product...", label_visibility="collapsed")
 
         # Build shared_fields dict — only include fields that were actually set
         shared_fields: dict[str, str] = {}
@@ -382,8 +373,6 @@ def screen_upload():
             shared_fields["who_made_it"] = who
         if topic and topic not in ("—", ""):
             shared_fields["topic"] = topic
-        if main_object and main_object not in ("—", ""):
-            shared_fields["main_object"] = main_object
         if main_usp and main_usp not in ("—", ""):
             shared_fields["main_usp"] = main_usp
 
