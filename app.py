@@ -294,11 +294,55 @@ def screen_upload():
             count_text = " · ".join(parts) if parts else f"{len(uploaded_files)} files"
             st.markdown(f'<span class="pill">{count_text}</span>', unsafe_allow_html=True)
 
-        st.markdown("")
-        who_opts = library.get_values("who_made_it") + ["custom..."]
-        who = st.selectbox("Who Made It (applies to all files)", who_opts, key="who_made_it_global")
-        if who == "custom...":
-            who = st.text_input("Creator name", key="who_made_it_custom")
+        # ── Shared Fields (apply to all files) ─────────────────────────────────
+        st.markdown(
+            '<p style="font-size:13px;font-weight:600;color:#6b7280;letter-spacing:.05em;'
+            'text-transform:uppercase;margin:20px 0 8px;">Applies to all files</p>',
+            unsafe_allow_html=True,
+        )
+
+        sf_col1, sf_col2 = st.columns(2)
+
+        with sf_col1:
+            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Who Made It</p>', unsafe_allow_html=True)
+            who_opts = ["—"] + library.get_values("who_made_it") + ["custom..."]
+            who = st.selectbox("who_made_it", who_opts, key="who_made_it_global", label_visibility="collapsed")
+            if who == "custom...":
+                who = st.text_input("who_made_it_custom", key="who_made_it_custom_input", placeholder="Type name...", label_visibility="collapsed")
+
+        with sf_col2:
+            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Topic <span style="color:#9ca3af;font-weight:400">(locks for all)</span></p>', unsafe_allow_html=True)
+            topic_opts = ["—"] + library.get_values("topic") + ["custom..."]
+            topic = st.selectbox("topic", topic_opts, key="topic_global", label_visibility="collapsed")
+            if topic == "custom...":
+                topic = st.text_input("topic_custom", key="topic_custom_input", placeholder="Type topic...", label_visibility="collapsed")
+
+        sf_col3, sf_col4 = st.columns(2)
+
+        with sf_col3:
+            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Main Object <span style="color:#9ca3af;font-weight:400">(optional)</span></p>', unsafe_allow_html=True)
+            obj_opts = ["—"] + library.get_values("main_object") + ["custom..."]
+            main_object = st.selectbox("main_object", obj_opts, key="main_object_global", label_visibility="collapsed")
+            if main_object == "custom...":
+                main_object = st.text_input("main_object_custom", key="main_object_custom_input", placeholder="Type object...", label_visibility="collapsed")
+
+        with sf_col4:
+            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Main USP <span style="color:#9ca3af;font-weight:400">(optional)</span></p>', unsafe_allow_html=True)
+            usp_opts = ["—"] + library.get_values("main_usp") + ["custom..."]
+            main_usp = st.selectbox("main_usp", usp_opts, key="main_usp_global", label_visibility="collapsed")
+            if main_usp == "custom...":
+                main_usp = st.text_input("main_usp_custom", key="main_usp_custom_input", placeholder="Type USP...", label_visibility="collapsed")
+
+        # Build shared_fields dict — only include fields that were actually set
+        shared_fields: dict[str, str] = {}
+        if who and who not in ("—", ""):
+            shared_fields["who_made_it"] = who
+        if topic and topic not in ("—", ""):
+            shared_fields["topic"] = topic
+        if main_object and main_object not in ("—", ""):
+            shared_fields["main_object"] = main_object
+        if main_usp and main_usp not in ("—", ""):
+            shared_fields["main_usp"] = main_usp
 
         st.markdown("")
         n = len(uploaded_files) if uploaded_files else 0
@@ -314,6 +358,7 @@ def screen_upload():
                 "temp_paths": temps,
                 "uploaded_files_bytes": bmap,
                 "uploaded_files_data": [{"name": uf.name, "size": uf.size} for uf in uploaded_files],
+                "shared_fields": shared_fields,
             })
 
             results = {}
@@ -321,7 +366,7 @@ def screen_upload():
             for i, tp in enumerate(temps):
                 pct = 20 + int((i / len(temps)) * 80)
                 prog.progress(pct, text=f"Scanning {i+1}/{len(temps)}: {uploaded_files[i].name}")
-                result = analyze_file(tp, config, who, library)
+                result = analyze_file(tp, config, shared_fields, library)
                 status = classify_file_status(result)
                 results[i] = result
                 statuses[status].append(i)
