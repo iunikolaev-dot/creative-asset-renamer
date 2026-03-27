@@ -243,6 +243,49 @@ def open_folder(path: str):
     subprocess.Popen({"Darwin": ["open"], "Windows": ["explorer"]}.get(s, ["xdg-open"]) + [path])
 
 
+def pick_folder_dialog() -> str | None:
+    """Open a native OS folder-picker dialog. Returns path string or None."""
+    s = platform.system()
+    try:
+        if s == "Darwin":
+            result = subprocess.run(
+                ["osascript", "-e",
+                 'POSIX path of (choose folder with prompt "Choose output folder for renamed files")'],
+                capture_output=True, text=True, timeout=120,
+            )
+            if result.returncode == 0:
+                return result.stdout.strip().rstrip("/")
+        elif s == "Windows":
+            result = subprocess.run(
+                ["powershell", "-Command",
+                 "(New-Object -ComObject Shell.Application)"
+                 ".BrowseForFolder(0,'Choose output folder',0).Self.Path"],
+                capture_output=True, text=True, timeout=120,
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+        else:
+            result = subprocess.run(
+                ["zenity", "--file-selection", "--directory",
+                 "--title=Choose output folder"],
+                capture_output=True, text=True, timeout=120,
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+    except Exception:
+        pass
+    return None
+
+
+def is_streamlit_cloud() -> bool:
+    """Heuristic: Streamlit Cloud sets HOSTNAME or mounts at /mount/src."""
+    return (
+        os.environ.get("STREAMLIT_SHARING_MODE") == "1"
+        or os.path.exists("/mount/src")
+        or "streamlit.app" in os.environ.get("SERVER_NAME", "")
+    )
+
+
 def collect_custom_values() -> list[dict]:
     """Find values that were manually entered and don't exist in the library."""
     new_values = []
@@ -748,10 +791,65 @@ def screen_confirm():
         st.warning("Duplicate names — suffixes added automatically.")
 
     st.markdown("")
-    mode = st.radio("Output", ["Copy to output folder (recommended)", "Rename in place"], index=0, key="output_mode")
-    out_dir = str(Path(__file__).parent / "renamed")
-    if "Copy" in mode:
-        out_dir = st.text_input("Output folder", value=out_dir, key="output_dir")
+
+    # ── Output destination ────────────────────────────────────────────────────
+    on_cloud = is_streamlit_cloud()
+
+    if not on_cloud:
+        st.markdown(
+            '<p style="font-size:13px;font-weight:600;color:#6b7280;letter-spacing:.05em;'
+            'text-transform:uppercase;margin:16px 0 8px;">Output folder</p>',
+            unsafe_allow_html=True,
+        )
+
+        default_dir = st.session_state.get("output_dir_chosen", str(Path.home() / "Desktop"))
+
+        # Quick-pick shortcuts
+        qc1, qc2, qc3, qc4 = st.columns(4)
+        with qc1:
+            if st.button("🖥 Desktop", use_container_width=True):
+                st.session_state["output_dir_chosen"] = str(Path.home() / "Desktop")
+                st.rerun()
+        with qc2:
+            if st.button("📥 Downloads", use_container_width=True):
+                st.session_state["output_dir_chosen"] = str(Path.home() / "Downloads")
+                st.rerun()
+        with qc3:
+            if st.button("📁 Browse...", use_container_width=True):
+                chosen = pick_folder_dialog()
+                if chosen:
+                    st.session_state["output_dir_chosen"] = chosen
+                st.rerun()
+        with qc4:
+            if st.button("📂 App folder", use_container_width=True):
+                st.session_state["output_dir_chosen"] = str(Path(__file__).parent / "renamed")
+                st.rerun()
+
+        out_dir = st.text_input(
+            "Path",
+            value=st.session_state.get("output_dir_chosen", default_dir),
+            key="output_dir_text",
+            label_visibility="collapsed",
+        )
+        # Keep session state in sync if user types manually
+        if out_dir != st.session_state.get("output_dir_chosen"):
+            st.session_state["output_dir_chosen"] = out_dir
+
+        # Validate path
+        p = Path(out_dir)
+        if p.exists():
+            st.markdown(
+                f'<p style="font-size:12px;color:#16a34a;margin-top:2px;">✓ Folder exists — files will be saved here</p>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f'<p style="font-size:12px;color:#d97706;margin-top:2px;">⚠ Folder doesn\'t exist yet — will be created</p>',
+                unsafe_allow_html=True,
+            )
+    else:
+        out_dir = str(Path(__file__).parent / "renamed")
+        st.info("Running on Streamlit Cloud — files will be available as a ZIP download.")
 
     st.markdown("")
     c1, c2 = st.columns(2)
@@ -760,7 +858,7 @@ def screen_confirm():
             st.session_state["screen"] = "dashboard"
             st.rerun()
     with c2:
-        if st.button(f"Rename All {n} Files", type="primary", use_container_width=True):
+        if st.button(f"Rename & Save {n} Files", type="primary", use_container_width=True):
             os.makedirs(out_dir, exist_ok=True)
             prog = st.progress(0)
             for j, idx in enumerate(indices):
@@ -772,7 +870,26 @@ def screen_confirm():
 
     if st.session_state.get("rename_done"):
         d = st.session_state.get("output_dir", out_dir)
-        st.success(f"Done! {n} files renamed in `{d}`")
+
+        if on_cloud:
+            # Cloud: offer ZIP download
+            import io, zipfile
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                for j, idx in enumerate(indices):
+                    zf.write(os.path.join(d, names[j]), arcname=names[j])
+            buf.seek(0)
+            st.success(f"✅ Done! Download your {n} renamed files below.")
+            st.download_button(
+                "⬇️ Download ZIP",
+                data=buf,
+                file_name="renamed_creatives.zip",
+                mime="application/zip",
+                type="primary",
+                use_container_width=True,
+            )
+        else:
+            st.success(f"✅ Done! {n} files saved to `{d}`")
 
         # Check for custom values to add to library
         new_vals = collect_custom_values()
@@ -788,7 +905,7 @@ def screen_confirm():
 
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("📂 Open Folder", type="primary", use_container_width=True):
+            if not on_cloud and st.button("📂 Open Folder", type="primary", use_container_width=True):
                 open_folder(d)
         with c2:
             if st.button("🔄 Start Over", use_container_width=True):
