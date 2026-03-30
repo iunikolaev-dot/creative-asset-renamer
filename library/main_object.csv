@@ -1,42 +1,37 @@
 value,aliases,description
-abstract,"artistic,conceptual",Abstract visual
-cat,"kitten,feline",Cat animal
-electronics,"tech,gadgets,devices",Consumer electronics
-female,"woman,lady,girl portrait",Female person
-generic,"general,standard",Generic unspecified object
-hook intro,"intro,opening hook",Hook/intro sequence
-items,"products,objects,things,groceries",Multiple items/products
-man,"male,guy,boy portrait",Male person
-two man,"two guys,two males,duo men",Two male people
-shoe,"shoes,sneakers,footwear",Shoes/footwear
-associations,"related,connected",Associations visual
-zero,"0,nothing",Zero concept
-chat,"message,conversation,text bubble",Chat/messaging
-sloth,"animal sloth",Sloth animal
-check,"checkmark,tick,verify",Checkmark/verification
-dominoes,"domino,tiles",Dominoes
-people,"persons,group,humans",Group of people
-text,"typography,words,headline",Text-dominant creative
-countdown,"timer,count",Countdown visual
-girl,"young woman,female young",Young woman
-couple,"pair,two people,romantic",Couple
-podcast,"audio,microphone,show",Podcast content
-camel,"desert animal",Camel
-kid,"child,children,baby",Child/children
-tabby app,"app screenshot,app interface,app ui",Tabby app screenshot
-three man,"three guys,trio men",Three male people
-movie,"film,cinema,scene",Movie/cinema reference
-crowd,"many people,audience,gathering",Large group
-puzzle,"jigsaw,pieces",Puzzle
-cartoon,"illustration,drawn,animated character",Cartoon/illustration
-books,"book,reading,literature",Books
+woman,"female,lady,girl,girl portrait,female person",Female person (adult)
+man,"male,guy,gentleman,boy portrait",Male person (adult)
+two people,"two man,two guys,duo,couple,pair",Two people
+three people,"three man,three guys,trio",Three people
+crowd,"many people,audience,gathering,group",Large group of people
+kid,"child,children,baby,boy,girl young",Child / children
+cartoon,"illustration,drawn,animated character,animation",Cartoon / illustration character
+tabby app,"app screenshot,app interface,app ui,interface",Tabby app screenshot / UI
+text,"typography,words,headline,copy",Text-dominant creative
+countdown,"timer,count,clock",Countdown visual
+items,"products,objects,things,groceries,goods",Multiple items / products
+electronics,"tech,gadgets,devices,phone,laptop",Consumer electronics
+shoe,"shoes,sneakers,footwear,boots",Shoes / footwear
+fragrance,"perfume,scent,cologne,oud",Fragrance / perfume
+food,"groceries,dish,meal,dates,sweets",Food items
+car,"vehicle,automobile,driving",Car / vehicle
+building,"architecture,structure,tower,city",Building / cityscape
+abstract,"artistic,conceptual,graphic",Abstract / graphic visual
+price tag,"tag,price,label,cost",Price tag
+travel bag,"luggage,suitcase,bag,backpack",Travel bag / luggage
+hand,"hands,palm,fingers,gesture",Hand / hands
+check,"checkmark,tick,verify,approval",Checkmark / verification
+chat,"message,conversation,text bubble,notification",Chat / messaging bubble
 airplane,"plane,flight,aircraft",Airplane
+books,"book,reading,literature",Books
+puzzle,"jigsaw,pieces",Puzzle
 toy,"toys,play,figurine",Toy
-sticker,"decal,badge",Sticker
-paper,"document,page,sheet",Paper
-price tag,"tag,price,label",Price tag
-travel bag,"luggage,suitcase,bag",Travel bag
-car,"vehicle,automobile,driving",Car/vehicle
-art sculpture,"sculpture,statue,art piece",Art sculpture
-building,"architecture,structure,tower",Building
-fragrance,"perfume,scent,cologne",Fragrance/perfume
+camel,"desert animal,camel",Camel
+cat,"kitten,feline",Cat
+sloth,"animal sloth",Sloth
+dominoes,"domino,tiles",Dominoes
+podcast,"audio,microphone,show",Podcast / microphone
+art sculpture,"sculpture,statue,art piece",Art / sculpture
+sticker,"decal,badge,icon",Sticker / badge
+zero,"0,nothing,empty",Zero concept
+none,"nothing,empty,n/a,na",No dominant object

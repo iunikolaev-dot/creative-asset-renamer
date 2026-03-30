@@ -1,76 +1,42 @@
 value,aliases,description
-abstract,"artistic,conceptual",Abstract visual element
-airplane,"plane,aircraft,flight",Airplane
-branded assets,"brand assets,branded,logo assets",Branded assets
-amazon,"",Amazon reference
-app,"application,mobile app",App/application
-arab dad,"arabic father,dad",Arab father figure
+none,"nothing,empty,n/a,na",No secondary object
+woman,"female,lady,girl,female person",Female person
+man,"male,gentleman,guy",Male person
+kid,"child,children,baby,boy,girl young",Child
+couple,"pair,two people,romantic duo",Couple
+logo,"brand mark,tabby logo,symbol,emblem",Logo / brand mark
+app,"application,mobile app,app screen",App / application
+devices,"phone,tablet,laptop,gadget,electronics",Electronic devices
+furniture,"sofa,table,chair,home furniture,couch",Furniture
+outfit,"clothing,fashion,dress,wardrobe,apparel",Outfit / clothing
 arabic clothes,"abaya,thobe,hijab,arabic dress,traditional dress",Traditional Arabic clothing
-arabic face,"arab face,middle eastern face",Arabic face close-up
-camera,"photography,photo camera",Camera
-carousel,"slider,swipe",Carousel format
-big purchase,"expensive,luxury buy,major purchase",Big purchase concept
-black friday,"bf sale,bf",Black Friday
-bloom,"flower,blossom,floral",Bloom/flowers
-boss,"leader,manager,chief",Boss figure
-boy,"young man,male youth",Young male
-brand,"logo,tabby,branding",Brand element
-furniture,"sofa,table,chair,home furniture,couch",Furniture items
-cat,"kitten,feline",Cat
-hectic days,"busy,stressful,rush",Hectic days concept
-deals,"offer,sale,discount",Deals/offers
-female,"woman,lady,girl",Female person
-genie,"magic,lamp,wish",Genie
-laughing,"laugh,funny,smile",Laughing person
-road,"street,path,highway",Road
-devices,"phone,tablet,laptop,gadget",Electronic devices
-dreams,"dream,imagination,fantasy",Dreams concept
-football,"soccer,match,sport ball",Football
-tiger,"",Tiger animal
-five cats,"5 cats,multiple cats",Five cats
-inflated,"balloon,inflatable,puffed",Inflated object
-guy,"dude,fellow,man",Guy
-hamster,"",Hamster
-helicopter,"chopper,heli",Helicopter
-homebox,"home box,homebox store",Homebox store
-items,"products,things,objects,groceries",Multiple items
-man,"male,gentleman",Male person
-melisha,"",Melisha reference
-namshi,"",Namshi store
-check,"checkmark,tick,verify",Checkmark
-playstation,"ps,ps5,gaming console",PlayStation
-popular meme cat,"meme cat,viral cat",Popular meme cat
-ramadan,"ramzan,ramazan",Ramadan themed
-bukhoor and home,"bukhoor,incense,home decor",Bukhoor and home
-shein,"",Shein store
-shopping,"shop,retail,store,mall",Shopping
-smile,"happy,grin,joyful",Smiling person
-snicker,"snickers,candy bar",Snicker
-campfire,"fire,bonfire,camping",Campfire
-two man,"two guys,duo,pair men",Two men
-makeup,"cosmetics,beauty,lipstick",Makeup
-ksacity,"ksa city,saudi city",KSA city
-arabian background,"arab bg,desert bg,middle east bg",Arabian background
-tom,"",Tom character
-black,"dark,noir",Black element
-tea without desert,"tea,no dessert",Tea without dessert
-chair,"seat,armchair",Chair
-handwriting,"handwritten,calligraphy,writing",Handwriting
-landscape,"scenery,nature,outdoor view",Landscape
-bucket,"pail,container",Bucket
-outfit,"clothing,fashion,dress,wardrobe",Outfit
-speaking,"talking,speech,presenter",Speaking person
-dad permission,"father approval,dad ok",Dad permission concept
-things in 2026,"2026,future things",Things in 2026
-bratz,"bratz doll,doll",Bratz doll
-beard,"facial hair,bearded",Beard
-volcano,"eruption,lava",Volcano
-people,"persons,group,humans",People group
-relax,"chill,rest,calm",Relaxing
-kid,"child,children,baby",Child
-painting,"art,canvas,artwork",Painting
-surfing,"surf,wave,beach sport",Surfing
+makeup,"cosmetics,beauty,lipstick,skincare",Makeup / beauty
+items,"products,things,objects,groceries",Multiple items / products
+deals,"offer,sale,discount,promo",Deals / offer visual
+branded assets,"brand assets,branded,logo assets",Branded assets
+bloom,"flower,blossom,floral,flowers",Flowers / bloom
+food,"dates,sweets,meal,dish,cuisine",Food
+landscape,"scenery,nature,outdoor view,view",Landscape / scenery
 landmark,"monument,famous place,tourist spot",Landmark
-crowd,"audience,gathering,many people",Crowd
-qamar,"moon,lunar",Qamar/moon
-none,"nothing,empty,n/a,na",No object option 1
+crowd,"audience,gathering,many people,group",Crowd
+people,"persons,group,humans",People (generic group)
+speaking,"talking,speech,presenter,presentation",Speaking person
+laughing,"laugh,funny,smile,happy",Laughing / smiling
+relax,"chill,rest,calm,relaxing",Relaxing person
+cat,"kitten,feline",Cat
+camel,"desert animal",Camel
+cartoon character,"cartoon,illustration,drawn character",Cartoon character
+abstract,"artistic,conceptual,graphic element",Abstract element
+text overlay,"text,headline,copy,typography",Text / headline overlay
+countdown,"timer,clock,count",Countdown element
+shopping,"shop,retail,store,mall,buying",Shopping scene
+amazon,"",Amazon
+namshi,"",Namshi
+shein,"",Shein
+homebox,"home box,homebox store",Homebox
+noon,"noon store,noon.com",Noon
+trendyol,"",Trendyol
+niceone,"ninceone,nice one,niceone store",Niceone
+golden scent,"gold perfume,luxury fragrance",Golden Scent
+playstation,"ps,ps5,gaming console",PlayStation
+football,"soccer,match,sport",Football / soccer

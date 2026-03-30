@@ -1,10 +1,14 @@
 value,aliases,description
-chill,"relaxed,lo-fi,calm music",Chill/relaxed music
+voiceover,"vo,narration,speaking,narrator,talking",Voice-over narration
+upbeat,"energetic,hype,fast,pump up,exciting music",Upbeat / energetic music
+chill,"relaxed,lo-fi,calm music,soft music",Chill / relaxed background music
+arabic,"arab music,oriental,oud,khaleeji",Arabic / oriental music
+hip hop,"hiphop,rap,trap,urban music",Hip-hop / trap music
+pop,"pop music,catchy,mainstream",Pop music
+piano,"keyboard,classical,instrumental,acoustic",Piano / instrumental
+dubstep,"edm,electronic,bass drop,house",Dubstep / EDM
 rock,"rock music,guitar,heavy",Rock music
-dubstep,"edm,electronic,bass drop",Dubstep/EDM
-arabic,"arab music,oriental,oud",Arabic music
-asmr,"whisper,soft sounds,tapping",ASMR sounds
-piano,"keyboard,classical,instrumental",Piano music
-voiceover,"vo,narration,speaking,narrator",Voice-over narration
-silent,"no sound,mute,quiet",No sound/silent
-none,"n/a,na,no audio",No sound (images)
+asmr,"whisper,soft sounds,tapping,satisfying",ASMR sounds
+sfx only,"sound effects,no music,sfx,ambient sound",Sound effects without music
+silent,"no sound,mute,quiet,no audio",Silent / no audio
+none,"n/a,na,images only",No sound (images)

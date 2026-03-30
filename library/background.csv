@@ -1,13 +1,18 @@
 value,aliases,description
-shopping mall,"mall,shopping center,retail center",Shopping mall background
-home,"house,interior,room,living room",Home/interior background
-public,"outdoor,street,city,urban",Public/outdoor background
-car,"vehicle,automobile,driving",Car interior/exterior
-no,"none,transparent,empty,n/a",No background
-crystals,"crystal,gem,gemstone,sparkle",Crystal/sparkle background
-black,"dark,noir,black bg",Black background
-solid,"flat,single color,plain",Solid color background
+white,"clean white,light,bright,plain white,ivory",White / clean background
+black,"dark,noir,black bg,dark background",Black / dark background
+solid,"flat,single color,plain,colored background",Solid color background (non-white/black)
 gradient,"fade,ombre,color transition",Gradient background
-photo,"photograph,real image,photographic",Photo background
-blurred,"blur,bokeh,out of focus",Blurred background
-patterned,"pattern,texture,repeating",Patterned background
+studio,"cyclorama,photo studio,studio shoot,clean bg",Studio / seamless background
+home,"house,interior,room,living room,apartment",Home / interior setting
+outdoor,"public,street,city,urban,outside",Outdoor / public setting
+shopping mall,"mall,shopping center,retail center",Shopping mall background
+nature,"landscape,greenery,park,forest,plants",Nature / outdoor greenery
+photo,"photograph,real photo,photographic,lifestyle",Lifestyle photo background
+blurred,"blur,bokeh,out of focus,defocused",Blurred / bokeh background
+animated,"motion bg,illustrated bg,drawn bg,cartoon bg",Animated or illustrated background
+branded,"tabby branded,brand environment,green tabby bg",Tabby-branded environment
+car,"vehicle,automobile,driving,inside car",Car interior / exterior
+patterned,"pattern,texture,repeating,geometric",Patterned / textured background
+crystals,"crystal,gem,gemstone,sparkle,glitter",Crystal / sparkle background
+none,"no background,transparent,empty,n/a",No background / transparent

@@ -1,19 +1,18 @@
 value,aliases,description
-branded,"tabby green,brand color,brand green",Tabby branded color
-colorful,"multicolor,rainbow,vibrant,multi",Multiple colors
-dark,"dark theme,moody,dim",Dark color scheme
-green,"emerald,lime,olive,mint",Green
-green / dark,"dark green,forest green",Green with dark tones
-no,"none,transparent,n/a",No dominant color
-room lights,"warm light,ambient,interior light",Room/ambient lighting
-honey,"gold,amber,warm yellow,golden",Honey/golden tone
-purple,"violet,lavender,plum,magenta",Purple
-white,"light,bright,clean,ivory",White
-black,"noir,charcoal,dark black",Black
-blue,"navy,sky blue,cyan,azure",Blue
-red,"crimson,scarlet,ruby,maroon",Red
-yellow,"golden,lemon,sunshine",Yellow
-orange,"tangerine,peach,amber orange",Orange
-pink,"rose,salmon,magenta light,blush",Pink
-brown,"chocolate,tan,coffee,beige",Brown
-gray,"grey,silver,charcoal light,neutral",Gray
+branded,"tabby green,brand color,brand green,tabby color",Tabby branded green
+white,"light,bright,clean,ivory,cream",White / light dominant
+black,"noir,charcoal,dark black",Black dominant
+dark,"dark theme,moody,dim,dark tones",Dark color scheme (mixed)
+colorful,"multicolor,rainbow,vibrant,multi,colorful",Multiple vibrant colors
+green,"emerald,lime,olive,mint,forest green",Green tones
+blue,"navy,sky blue,cyan,azure,cobalt",Blue tones
+red,"crimson,scarlet,ruby,maroon,coral",Red tones
+yellow,"golden,lemon,sunshine,bright yellow",Yellow tones
+orange,"tangerine,peach,amber orange,coral orange",Orange tones
+purple,"violet,lavender,plum,magenta",Purple tones
+pink,"rose,salmon,blush,hot pink",Pink tones
+brown,"chocolate,tan,coffee,beige,caramel",Brown / earth tones
+gray,"grey,silver,charcoal light,neutral,slate",Gray tones
+honey,"gold,amber,warm yellow,golden,brass",Honey / gold tones
+nude,"skin tone,beige,neutral,off-white",Nude / skin / neutral tones
+none,"no color,transparent,n/a",No dominant color
