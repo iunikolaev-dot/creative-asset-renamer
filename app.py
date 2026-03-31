@@ -415,7 +415,21 @@ def screen_upload():
         st.markdown("")
         n = len(uploaded_files) if uploaded_files else 0
         btn_label = f"Scan {n} files with AI" if n > 0 else "Scan Files with AI"
-        if st.button(btn_label, disabled=not uploaded_files, type="primary", use_container_width=True):
+
+        # All 3 shared fields must be filled before scanning
+        fields_missing = [
+            label for label, val in [
+                ("Who Made It", who), ("Topic", topic), ("Main Product", main_usp)
+            ] if not val or val in ("—", "")
+        ]
+        if fields_missing:
+            st.markdown(
+                f'<p style="font-size:12px;color:#d97706;margin:0 0 6px 0;">'
+                f'⚠ Please fill in: {", ".join(fields_missing)}</p>',
+                unsafe_allow_html=True,
+            )
+        scan_disabled = not uploaded_files or bool(fields_missing)
+        if st.button(btn_label, disabled=scan_disabled, type="primary", use_container_width=True):
             temps, bmap = [], {}
             prog = st.progress(0, text="Preparing...")
             for i, uf in enumerate(uploaded_files):
@@ -528,15 +542,15 @@ def screen_dashboard():
 
     # ── Table Header ──
     st.markdown(
-        '<div style="display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:10px;'
+        '<div style="display:flex;align-items:center;gap:8px;padding:4px 8px 6px 8px;font-size:10px;'
         'font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:#b0b0b0;'
         'border-bottom:1px solid #e8e8e5;margin-bottom:4px;">'
-        '<span style="width:28px;"></span>'
-        '<span style="width:48px;"></span>'
-        '<span style="flex:1;">Original</span>'
         '<span style="width:24px;"></span>'
-        '<span style="flex:1.5;">New Name</span>'
-        '<span style="width:60px;">Status</span>'
+        '<span style="width:44px;"></span>'
+        '<span style="flex:1.3;">Original</span>'
+        '<span style="flex:1.8;">New Name</span>'
+        '<span style="flex:1.4;">Fields to Review</span>'
+        '<span style="width:24px;"></span>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -548,13 +562,12 @@ def screen_dashboard():
         issues = get_issues(result)
         new_name = build_filename(i)
 
-        # Row with: checkbox | thumbnail | original name | arrow | new name | status
-        col_cb, col_thumb, col_orig, col_arrow, col_new, col_status = st.columns(
-            [0.3, 0.4, 1.5, 0.2, 2, 0.5], vertical_alignment="center"
+        # Row: checkbox | thumb | original | new name | missing fields | status
+        col_cb, col_thumb, col_orig, col_new, col_issues, col_status = st.columns(
+            [0.25, 0.35, 1.3, 1.8, 1.4, 0.3], vertical_alignment="center"
         )
 
         with col_cb:
-            # Default: ready files pre-selected
             default_checked = i in st.session_state.get("selected_for_rename", set())
             checked = st.checkbox("sel", value=default_checked, key=f"cb_{i}", label_visibility="collapsed")
             if checked:
@@ -565,32 +578,42 @@ def screen_dashboard():
         with col_thumb:
             small_thumb = _get_small_thumbnail(temps[i])
             if small_thumb:
-                st.image(small_thumb, width=48)
+                st.image(small_thumb, width=44)
             else:
                 ext = Path(files[i]["name"]).suffix.lower()
                 icon = "🎬" if ext in (".mp4", ".mov", ".webm") else "🖼️"
-                st.markdown(f'<div style="width:48px;height:48px;background:#f5f5f5;border-radius:6px;'
-                            f'display:flex;align-items:center;justify-content:center;font-size:20px;">{icon}</div>',
-                            unsafe_allow_html=True)
+                st.markdown(
+                    f'<div style="width:44px;height:44px;background:#f5f5f5;border-radius:6px;'
+                    f'display:flex;align-items:center;justify-content:center;font-size:18px;">{icon}</div>',
+                    unsafe_allow_html=True,
+                )
 
         with col_orig:
-            st.markdown(f'<span style="font-family:monospace;font-size:12px;color:#787774;">'
-                        f'{files[i]["name"]}</span>', unsafe_allow_html=True)
-
-        with col_arrow:
-            st.markdown('<span style="color:#b0b0b0;font-size:14px;">→</span>', unsafe_allow_html=True)
+            st.markdown(
+                f'<span style="font-family:monospace;font-size:11px;color:#9b9b9b;">'
+                f'{files[i]["name"]}</span>',
+                unsafe_allow_html=True,
+            )
 
         with col_new:
-            st.markdown(f'<span style="font-family:monospace;font-size:12px;color:#37352f;font-weight:500;">'
-                        f'{new_name}</span>', unsafe_allow_html=True)
+            st.markdown(
+                f'<span style="font-family:monospace;font-size:11px;color:#37352f;font-weight:500;">'
+                f'{new_name}</span>',
+                unsafe_allow_html=True,
+            )
+
+        with col_issues:
+            if issues:
+                issues_html = " ".join(
+                    f'<span style="display:inline-block;padding:1px 6px;border-radius:3px;'
+                    f'font-size:10px;font-weight:500;background:#fef3cd;color:#856404;'
+                    f'margin:1px 2px 1px 0;">{iss}</span>'
+                    for iss in issues
+                )
+                st.markdown(f'<div>{issues_html}</div>', unsafe_allow_html=True)
 
         with col_status:
             st.markdown(status_dot(status), unsafe_allow_html=True)
-
-        # Issues tags below the row
-        if issues:
-            issues_html = " ".join(f'<span class="issue-tag">{iss}</span>' for iss in issues)
-            st.markdown(f'<div style="margin:-8px 0 2px 80px;">{issues_html}</div>', unsafe_allow_html=True)
 
         # ── Inline Editor for yellow/red rows ──
         if status in ("needs_review", "failed"):
@@ -755,11 +778,20 @@ def screen_dashboard():
 
     act1, act2, act3 = st.columns([1.5, 1, 1.5])
     with act1:
-        if st.button(f"Select All ({n})", use_container_width=True):
-            for j in range(n):
-                st.session_state[f"cb_{j}"] = True
-                st.session_state["selected_for_rename"].add(j)
-            st.rerun()
+        c_all, c_none = st.columns(2)
+        with c_all:
+            if st.button(f"Select All ({n})", use_container_width=True):
+                st.session_state["selected_for_rename"] = set(range(n))
+                # Clear checkbox widget keys so they re-initialize from value=
+                for j in range(n):
+                    st.session_state.pop(f"cb_{j}", None)
+                st.rerun()
+        with c_none:
+            if st.button("Clear", use_container_width=True):
+                st.session_state["selected_for_rename"] = set()
+                for j in range(n):
+                    st.session_state.pop(f"cb_{j}", None)
+                st.rerun()
 
     with act2:
         st.markdown(
