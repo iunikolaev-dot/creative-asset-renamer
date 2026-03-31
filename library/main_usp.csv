@@ -1,24 +1,7 @@
 value,aliases,description
-pay in 4,"split payment,installments,4 payments,split payments,pay4",Pay in 4 installments — core product USP
-pay in 6,"6 payments,split 6,pay6",Pay in 6 installments — core product USP
-zero fees,"no fees,fee free,0 fees,no interest",Zero fees / no interest messaging
-shop in-store,"offline,in store,physical,brick and mortar",In-store / offline shopping with Tabby
-shop online,"online shopping,e-commerce,buy online",Online shopping with Tabby
-easy approval,"instant approval,quick approval,fast approval",Fast / easy approval messaging
-do more with your money,"money,save more,financial,empowerment",Financial empowerment messaging
-brand awareness,"brand tabby,brand,tabby brand,branding",Tabby brand / general awareness
-product features,"features,functionality,how it works",Product feature highlight
-ramadan,"ramzan,ramazan",Ramadan seasonal campaign
-eid,"eid al fitr,eid al adha,eid mubarak",Eid seasonal campaign
-black friday,"bf,black fri",Black Friday campaign
-white friday,"white fri,wf",White Friday campaign
-tabbyday,"tabby day,special day",Tabby Day promotion
-singles day,"single's day,11.11,double eleven",Singles Day / 11.11 campaign
-saudi national day,"ksa national day,national day ksa,93,94",Saudi National Day campaign
-uae national day,"uae national,national day uae",UAE National Day campaign
-back to school,"back2school,school season,academic",Back to school campaign
-new year,"new year new me,2025,2026,happy new year",New Year campaign
-summer,"summer sale,summer deals,hot season",Summer campaign
-valentines day,"valentine,valentines,feb 14",Valentine's Day campaign
-mothers day,"mother's day,mom,mum",Mother's Day campaign
-gaming,"games,gamer,play,esports",Gaming-related campaign
+pay in 4,"split payment,installments,4 payments,split payments,pay4,4 installments,pay in four",Pay in 4 installments — core product USP
+pay in 6,"6 payments,split 6,pay6,6 installments,pay in six",Pay in 6 installments — core product USP
+zero fees,"no fees,fee free,0 fees,no interest,no hidden fees",Zero fees / no interest messaging
+shop in-store,"offline,in store,physical,brick and mortar,in-store",In-store / offline shopping with Tabby
+shop online,"online shopping,e-commerce,buy online,ecommerce",Online shopping with Tabby
+easy approval,"instant approval,quick approval,fast approval,get approved",Fast / easy approval messaging
