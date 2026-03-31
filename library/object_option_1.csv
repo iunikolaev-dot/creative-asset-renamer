@@ -4,39 +4,31 @@ woman,"female,lady,girl,female person",Female person
 man,"male,gentleman,guy",Male person
 kid,"child,children,baby,boy,girl young",Child
 couple,"pair,two people,romantic duo",Couple
+crowd,"audience,gathering,many people,group",Crowd
+cartoon character,"cartoon,illustration,drawn character",Cartoon character
 logo,"brand mark,tabby logo,symbol,emblem",Logo / brand mark
-app,"application,mobile app,app screen",App / application
+app,"application,mobile app,app screen,app interface",App / application
 devices,"phone,tablet,laptop,gadget,electronics",Electronic devices
-furniture,"sofa,table,chair,home furniture,couch",Furniture
 outfit,"clothing,fashion,dress,wardrobe,apparel",Outfit / clothing
 arabic clothes,"abaya,thobe,hijab,arabic dress,traditional dress",Traditional Arabic clothing
 makeup,"cosmetics,beauty,lipstick,skincare",Makeup / beauty
-items,"products,things,objects,groceries",Multiple items / products
-deals,"offer,sale,discount,promo",Deals / offer visual
-branded assets,"brand assets,branded,logo assets",Branded assets
-bloom,"flower,blossom,floral,flowers",Flowers / bloom
+fragrance,"perfume,scent,cologne,oud",Fragrance / perfume
+furniture,"sofa,table,chair,home furniture,couch",Furniture
 food,"dates,sweets,meal,dish,cuisine",Food
+bloom,"flower,blossom,floral,flowers",Flowers / bloom
 landscape,"scenery,nature,outdoor view,view",Landscape / scenery
 landmark,"monument,famous place,tourist spot",Landmark
-crowd,"audience,gathering,many people,group",Crowd
-people,"persons,group,humans",People (generic group)
-speaking,"talking,speech,presenter,presentation",Speaking person
-laughing,"laugh,funny,smile,happy",Laughing / smiling
-relax,"chill,rest,calm,relaxing",Relaxing person
-cat,"kitten,feline",Cat
-camel,"desert animal",Camel
-cartoon character,"cartoon,illustration,drawn character",Cartoon character
 abstract,"artistic,conceptual,graphic element",Abstract element
 text overlay,"text,headline,copy,typography",Text / headline overlay
 countdown,"timer,clock,count",Countdown element
-shopping,"shop,retail,store,mall,buying",Shopping scene
-amazon,"",Amazon
-namshi,"",Namshi
-shein,"",Shein
+shopping bag,"shopping,retail,store,bag,bags",Shopping bag
+amazon,"amazon.com,amazon store",Amazon
+namshi,"namshi store",Namshi
+shein,"shein store",Shein
 homebox,"home box,homebox store",Homebox
 noon,"noon store,noon.com",Noon
 trendyol,"",Trendyol
-niceone,"ninceone,nice one,niceone store",Niceone
+niceone,"ninceone,nice one",Niceone
 golden scent,"gold perfume,luxury fragrance",Golden Scent
 playstation,"ps,ps5,gaming console",PlayStation
 football,"soccer,match,sport",Football / soccer

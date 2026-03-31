@@ -1,17 +1,14 @@
 value,aliases,description
-none,"nothing,empty,n/a,na",No secondary object
-logo,"brand mark,symbol,emblem,tabby logo",Logo / brand mark
+none,"nothing,empty,n/a,na",No tertiary object
+logo,"brand mark,symbol,emblem,tabby logo,tabby mark",Logo / brand mark
 card tap,"tap to pay,contactless,nfc,payment tap",Card tap / contactless payment
 price split,"installment split,4 payments shown,payment breakdown",Installment price breakdown visual
-tabby logo,"tabby brand,tabby mark,tabby icon",Tabby logo specifically
-app,"application,mobile app,app interface,interface",App / UI element
+app,"application,mobile app,app interface",App / UI element
 smartphone,"phone,mobile,cellphone,iphone,android",Smartphone
 laptop,"computer,notebook pc,macbook",Laptop
 hands,"hand,palm,fingers,gesture",Hands / hand
 woman,"female,lady,girl",Female person
 man,"male,guy,gentleman",Male person
-dancing,"dance,dancer,moves,dancing person",Dancing person
-speaking,"talking,speech,presenter",Speaking person
 outfit,"clothing,fashion,dress,wardrobe",Outfit / clothing
 arabic clothes,"abaya,thobe,hijab,traditional dress",Traditional Arabic clothing
 scarf,"hijab wrap,shawl,headscarf",Scarf / headscarf
@@ -21,18 +18,12 @@ sea,"ocean,beach,water,waves,coast",Sea / beach
 desert,"sand,sahara,dunes,desert landscape",Desert
 riyadh,"ryd,riyadh city,saudi capital",Riyadh
 mall,"shopping center,shopping mall",Shopping mall
-in-store map,"store map,mall map,navigation",In-store navigation map
 house items,"home items,household,furniture,home goods",Household items
 sport,"sports,athletic,fitness,workout",Sport / athletic
 travel,"trip,vacation,journey,suitcase",Travel
 car,"vehicle,automobile,driving",Car
-emotions,"feeling,emotional,mood,expression",Emotions / expression
-conflict,"tension,argument,drama,disagreement",Conflict scene
-studio,"photo studio,set,studio background",Studio setting
-numbers,"digits,numerical,count,statistics",Numbers / statistics
-zero,"0,nothing,empty,zero number",Zero
 abstract,"artistic,conceptual,graphic",Abstract element
-amazon,"",Amazon
+amazon,"amazon.com,amazon store",Amazon
 homebox,"home box,homebox store",Homebox
 noon,"noon store,noon.com",Noon
 trendyol,"",Trendyol
