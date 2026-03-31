@@ -137,6 +137,11 @@ st.markdown("""
     div[data-baseweb="select"] { font-size: 13px !important; }
     div[data-baseweb="select"] > div { min-height: 36px !important; }
 
+    /* Prevent expander header from overlapping widgets below it */
+    details > summary { position: relative; z-index: 1; }
+    details { position: relative; z-index: 0; }
+    div[data-testid="stExpander"] { isolation: isolate; }
+
     /* Expand file uploader list to show ~10 rows */
     [data-testid="stFileUploader"] [data-testid="stFileUploaderFileList"] {
         max-height: 420px !important;

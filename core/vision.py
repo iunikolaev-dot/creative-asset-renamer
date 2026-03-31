@@ -28,13 +28,24 @@ def count_low_confidence(ai_result: dict) -> int:
     return count
 
 
+_UI_ARTIFACTS = {
+    "arrow", "arrow right", "arrow left", "arrow up", "arrow down",
+    "chevron", "chevron right", "chevron left", "chevron down", "chevron up",
+    "icon", "button", "caret", "dropdown", "expand", "collapse",
+    "close", "check circle", "info", "warning", "error", "spinner",
+}
+
+
 def _normalize_ai_value(value: str) -> str:
+    """Normalize AI output: lowercase, underscores→spaces, strip junk, reject UI artifacts."""
     value = value.lower().strip()
-    # Convert underscores to spaces — underscores are field separators, not for within values
+    # Underscores are filename separators — values must use spaces
     value = value.replace("_", " ")
     value = re.sub(r"[^a-z0-9 /\-]", "", value)
     value = re.sub(r" +", " ", value).strip()
-    return value if value else "x"
+    if not value or value in _UI_ARTIFACTS:
+        return "x"
+    return value
 
 
 def classify_file_status(result: dict) -> str:
