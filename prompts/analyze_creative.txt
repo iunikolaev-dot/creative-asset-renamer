@@ -19,11 +19,12 @@ For each field, you MUST select from the allowed values listed below. If no valu
 }
 
 Rules:
-- You MUST select values from the ALLOWED VALUES list below. Do NOT invent new values.
-- All values must be lowercase with SPACES between words (NOT underscores). Underscores are field separators.
-- Return ONLY JSON, nothing else
-- If unsure, set confidence to "low"
-- For video: analyze all frames as one creative
-- For images: sound_type must be "none"
-- Pay attention to Arabic text - detect language accurately
-- For main_object: describe what is VISUALLY dominant (people, items, text, etc.) — do NOT say "app ui" unless it is literally a screenshot of the Tabby app interface
+- You MUST select values EXACTLY as written in the ALLOWED VALUES list. Copy them character-for-character.
+- NEVER use underscores in values. Values use spaces: "pay in 4" not "pay_in_4", "no hook" not "no_hook".
+- NEVER invent values not in the allowed list. If unsure, pick the closest match and set confidence to "low".
+- Return ONLY the JSON object, nothing else — no markdown, no explanation, no backticks.
+- If unsure about a field, set confidence to "low" and pick the nearest match from the allowed list.
+- For video: analyze all frames holistically as one creative.
+- For images: sound_type must always be "none".
+- Detect Arabic vs English text accurately — check all visible text.
+- For main_object: identify the PRIMARY visual element (person, product, text, etc.). Do NOT return "app ui" or "tabby app" unless you literally see a screenshot of the Tabby mobile app interface.

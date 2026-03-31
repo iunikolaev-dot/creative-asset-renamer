@@ -18,12 +18,15 @@ def assemble_name(
     version: int | None = None,
     original_extension: str = ".jpg",
 ) -> str:
+    """Returns filename stem only (no extension). Caller adds extension when saving."""
     separator = config.get("separator", "_")
     placeholder = config.get("empty_placeholder", "x")
     max_len = config.get("max_filename_length", 200)
 
     parts = []
     for field in sorted(config["fields"], key=lambda f: f["position"]):
+        if not field.get("include_in_filename", True):
+            continue
         field_data = fields_dict.get(field["name"], {})
         value = field_data.get("value", placeholder) if isinstance(field_data, dict) else str(field_data)
         if not value or value.strip() == "":
@@ -35,20 +38,14 @@ def assemble_name(
     if version and version > 1:
         name += f"_v{version}"
 
-    ext = original_extension.lower()
-    if not ext.startswith("."):
-        ext = "." + ext
+    if len(name) > max_len:
+        name = name[:max_len]
 
-    full = name + ext
-    if len(full) > max_len:
-        trim = max_len - len(ext) - (len(f"_v{version}") if version and version > 1 else 0)
-        name = name[:trim]
-        full = name + ext
-
-    return full
+    return name
 
 
 def detect_conflicts(names: list[str]) -> list[str]:
+    """Resolve duplicate stems by appending _a, _b, etc."""
     counts: dict[str, int] = {}
     for name in names:
         counts[name] = counts.get(name, 0) + 1
@@ -59,15 +56,9 @@ def detect_conflicts(names: list[str]) -> list[str]:
         if counts[name] > 1:
             idx = seen.get(name, 0)
             suffix = chr(ord("a") + idx)
-            stem, ext = _split_name_ext(name)
-            result.append(f"{stem}_{suffix}{ext}")
+            result.append(f"{name}_{suffix}")
             seen[name] = idx + 1
         else:
             result.append(name)
 
     return result
-
-
-def _split_name_ext(filename: str) -> tuple[str, str]:
-    p = Path(filename)
-    return p.stem, p.suffix

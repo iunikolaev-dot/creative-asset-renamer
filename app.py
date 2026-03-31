@@ -221,8 +221,14 @@ def build_filename(file_idx: int) -> str:
         else:
             result[field["name"]] = scan.get(field["name"], {"value": "x"})
     ver = st.session_state["versions"].get(file_idx)
-    ext = Path(st.session_state["temp_paths"][file_idx]).suffix
-    return assemble_name(result, config, version=ver, original_extension=ext)
+    return assemble_name(result, config, version=ver)
+
+
+def build_filename_with_ext(file_idx: int) -> str:
+    """Returns stem + original extension for use when actually saving files."""
+    stem = build_filename(file_idx)
+    ext = Path(st.session_state["temp_paths"][file_idx]).suffix.lower()
+    return stem + ext
 
 
 def get_issues(result: dict) -> list[str]:
@@ -318,12 +324,46 @@ def screen_upload():
     _, center, _ = st.columns([1, 2, 1])
     with center:
         st.markdown('<p class="hero-title">🎨 Creative Renamer</p>', unsafe_allow_html=True)
-        st.markdown('<p class="hero-sub">Drop up to 100 creatives. AI names them. You review exceptions.</p>', unsafe_allow_html=True)
+        st.markdown('<p class="hero-sub">Drop your ad creatives. AI names them. You review exceptions.</p>', unsafe_allow_html=True)
 
+        # ── Shared Fields FIRST ─────────────────────────────────────────────────
+        st.markdown(
+            '<p style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:.08em;'
+            'text-transform:uppercase;margin:16px 0 8px;">Applies to all files</p>',
+            unsafe_allow_html=True,
+        )
+        sf_col1, sf_col2, sf_col3 = st.columns(3)
+
+        with sf_col1:
+            st.markdown('<p style="font-size:12px;font-weight:500;color:#374151;margin-bottom:2px;">Who Made It</p>', unsafe_allow_html=True)
+            who_opts = ["—"] + library.get_values("who_made_it") + ["custom..."]
+            who = st.selectbox("who_made_it", who_opts, key="who_made_it_global", label_visibility="collapsed")
+            if who == "custom...":
+                who = st.text_input("who_made_it_custom", key="who_made_it_custom_input", placeholder="Type name...", label_visibility="collapsed")
+
+        with sf_col2:
+            st.markdown('<p style="font-size:12px;font-weight:500;color:#374151;margin-bottom:2px;">Topic</p>', unsafe_allow_html=True)
+            topic_opts = ["—"] + library.get_values("topic") + ["custom..."]
+            topic = st.selectbox("topic", topic_opts, key="topic_global", label_visibility="collapsed")
+            if topic == "custom...":
+                topic = st.text_input("topic_custom", key="topic_custom_input", placeholder="Type topic...", label_visibility="collapsed")
+
+        with sf_col3:
+            st.markdown('<p style="font-size:12px;font-weight:500;color:#374151;margin-bottom:2px;">Main Product</p>', unsafe_allow_html=True)
+            usp_opts = ["—"] + library.get_values("main_usp") + ["custom..."]
+            main_usp = st.selectbox("main_usp", usp_opts, key="main_usp_global", label_visibility="collapsed")
+            if main_usp == "custom...":
+                main_usp = st.text_input("main_usp_custom", key="main_usp_custom_input", placeholder="Type product...", label_visibility="collapsed")
+
+        st.markdown('<div style="margin:16px 0 8px;border-top:1px solid #f0f0f0;"></div>', unsafe_allow_html=True)
+
+        # ── File Uploader ───────────────────────────────────────────────────────
         uploaded_files = st.file_uploader(
             "Upload", type=["jpg", "jpeg", "png", "mp4", "mov", "webm"],
             accept_multiple_files=True, key="file_uploader", label_visibility="collapsed",
         )
+
+        # ── Scrollable file list ────────────────────────────────────────────────
         if uploaded_files:
             img_exts = {".jpg", ".jpeg", ".png"}
             vid_exts = {".mp4", ".mov", ".webm"}
@@ -335,37 +375,33 @@ def screen_upload():
             if n_vid:
                 parts.append(f"{n_vid} video{'s' if n_vid != 1 else ''}")
             count_text = " · ".join(parts) if parts else f"{len(uploaded_files)} files"
-            st.markdown(f'<span class="pill">{count_text}</span>', unsafe_allow_html=True)
 
-        # ── Shared Fields (apply to all files) ─────────────────────────────────
-        st.markdown(
-            '<p style="font-size:13px;font-weight:600;color:#6b7280;letter-spacing:.05em;'
-            'text-transform:uppercase;margin:20px 0 8px;">Applies to all files</p>',
-            unsafe_allow_html=True,
-        )
+            st.markdown(
+                f'<p style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:.08em;'
+                f'text-transform:uppercase;margin:12px 0 6px;">{count_text}</p>',
+                unsafe_allow_html=True,
+            )
 
-        sf_col1, sf_col2, sf_col3 = st.columns(3)
-
-        with sf_col1:
-            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Who Made It</p>', unsafe_allow_html=True)
-            who_opts = ["—"] + library.get_values("who_made_it") + ["custom..."]
-            who = st.selectbox("who_made_it", who_opts, key="who_made_it_global", label_visibility="collapsed")
-            if who == "custom...":
-                who = st.text_input("who_made_it_custom", key="who_made_it_custom_input", placeholder="Type name...", label_visibility="collapsed")
-
-        with sf_col2:
-            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Topic <span style="color:#9ca3af;font-weight:400">(locks for all)</span></p>', unsafe_allow_html=True)
-            topic_opts = ["—"] + library.get_values("topic") + ["custom..."]
-            topic = st.selectbox("topic", topic_opts, key="topic_global", label_visibility="collapsed")
-            if topic == "custom...":
-                topic = st.text_input("topic_custom", key="topic_custom_input", placeholder="Type topic...", label_visibility="collapsed")
-
-        with sf_col3:
-            st.markdown('<p style="font-size:13px;font-weight:500;color:#374151;margin-bottom:4px;">Main Product <span style="color:#9ca3af;font-weight:400">(optional)</span></p>', unsafe_allow_html=True)
-            usp_opts = ["—"] + library.get_values("main_usp") + ["custom..."]
-            main_usp = st.selectbox("main_usp", usp_opts, key="main_usp_global", label_visibility="collapsed")
-            if main_usp == "custom...":
-                main_usp = st.text_input("main_usp_custom", key="main_usp_custom_input", placeholder="Type product...", label_visibility="collapsed")
+            # Show all files in a compact scrollable area (max 240px ~= 10 rows)
+            rows_html = ""
+            for uf in uploaded_files:
+                ext = Path(uf.name).suffix.lower()
+                icon = "🎬" if ext in vid_exts else "🖼️"
+                size_kb = uf.size // 1024
+                size_str = f"{size_kb / 1024:.1f} MB" if size_kb > 1024 else f"{size_kb} KB"
+                rows_html += (
+                    f'<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;'
+                    f'border-bottom:1px solid #f5f5f5;font-size:12px;color:#37352f;">'
+                    f'<span style="font-size:14px;">{icon}</span>'
+                    f'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{uf.name}</span>'
+                    f'<span style="color:#9b9b9b;flex-shrink:0;">{size_str}</span>'
+                    f'</div>'
+                )
+            st.markdown(
+                f'<div style="border:1px solid #e8e8e5;border-radius:8px;'
+                f'max-height:240px;overflow-y:auto;background:#fafafa;">{rows_html}</div>',
+                unsafe_allow_html=True,
+            )
 
         # Build shared_fields dict — only include fields that were actually set
         shared_fields: dict[str, str] = {}
@@ -458,20 +494,20 @@ def screen_dashboard():
     st.markdown('<p class="page-title">Batch Dashboard</p>', unsafe_allow_html=True)
     st.markdown(f'<p class="page-sub">{n} files scanned — review exceptions, then rename</p>', unsafe_allow_html=True)
 
-    # ── Summary Stats Bar ──
+    # ── Compact status bar ──
     n_ready = len(statuses.get("ready", []))
     n_review = len(statuses.get("needs_review", []))
     n_failed = len(statuses.get("failed", []))
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f'<div class="stat-card stat-ready"><h2>{n_ready}</h2><p>Ready</p></div>', unsafe_allow_html=True)
-    with c2:
-        st.markdown(f'<div class="stat-card stat-review"><h2>{n_review}</h2><p>Needs Review</p></div>', unsafe_allow_html=True)
-    with c3:
-        st.markdown(f'<div class="stat-card stat-failed"><h2>{n_failed}</h2><p>Failed</p></div>', unsafe_allow_html=True)
-
-    st.markdown("")
+    st.markdown(
+        f'<div style="display:flex;gap:16px;align-items:center;margin:0 0 16px 0;'
+        f'font-size:12px;font-weight:500;">'
+        f'<span style="color:#2b593f;">● {n_ready} ready</span>'
+        f'<span style="color:#856404;">● {n_review} needs review</span>'
+        f'<span style="color:#93000a;">● {n_failed} failed</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     # ── Filter Controls ──
     filter_options = ["All", "Needs Review", "Ready", "Failed"]
@@ -766,17 +802,23 @@ def screen_confirm():
     st.markdown('<p class="page-title">Confirm & Rename</p>', unsafe_allow_html=True)
     st.markdown(f'<p class="page-sub">{n} files ready to rename</p>', unsafe_allow_html=True)
 
-    names = detect_conflicts([build_filename(i) for i in indices])
+    # Stems for dedup logic, then re-attach original extensions for saving
+    stems = detect_conflicts([build_filename(i) for i in indices])
+    final_names = [stems[j] + Path(temps[indices[j]]).suffix.lower() for j in range(n)]
 
     rows = "".join(
-        f'<tr><td class="o">{files[indices[j]]["name"]}</td>'
+        f'<tr>'
+        f'<td class="o">{Path(files[indices[j]]["name"]).stem}</td>'
         f'<td class="a">→</td>'
-        f'<td class="n">{names[j]}</td></tr>'
+        f'<td class="n">{stems[j]}</td>'
+        f'<td style="color:#b0b0b0;font-family:monospace;font-size:11px;padding:8px 4px;">'
+        f'{Path(temps[indices[j]]).suffix.lower()}</td>'
+        f'</tr>'
         for j in range(n)
     )
     st.markdown(f'<table class="rt">{rows}</table>', unsafe_allow_html=True)
 
-    if len(names) != len(set(names)):
+    if len(stems) != len(set(stems)):
         st.warning("Duplicate names — suffixes added automatically.")
 
     st.markdown("")
@@ -852,7 +894,7 @@ def screen_confirm():
             prog = st.progress(0)
             for j, idx in enumerate(indices):
                 prog.progress(int(((j + 1) / n) * 100), text=f"{j+1}/{n}")
-                shutil.copy2(temps[idx], os.path.join(out_dir, names[j]))
+                shutil.copy2(temps[idx], os.path.join(out_dir, final_names[j]))
             prog.progress(100, text="Done!")
             st.session_state.update({"rename_done": True, "output_dir": out_dir})
             st.rerun()
@@ -866,7 +908,7 @@ def screen_confirm():
             buf = io.BytesIO()
             with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
                 for j, idx in enumerate(indices):
-                    zf.write(os.path.join(d, names[j]), arcname=names[j])
+                    zf.write(os.path.join(d, final_names[j]), arcname=final_names[j])
             buf.seek(0)
             st.success(f"✅ Done! Download your {n} renamed files below.")
             st.download_button(

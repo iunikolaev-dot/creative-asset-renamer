@@ -32,7 +32,7 @@ fields:
     allow_custom: true
 
   - name: main_usp
-    display_name: "Main USP"
+    display_name: "Main Product"
     position: 5
     detection: ai_suggested
     library_file: "main_usp.csv"
@@ -71,18 +71,19 @@ fields:
     detection: ai_detected
     library_file: "sound_type.csv"
 
-  - name: background
-    display_name: "Background"
-    position: 11
-    detection: ai_detected
-    library_file: "background.csv"
-
   - name: main_color
     display_name: "Main Color"
-    position: 12
+    position: 11
     detection: auto_ai
     library_file: "main_color.csv"
     allow_custom: true
+
+  - name: background
+    display_name: "Background"
+    position: 12
+    detection: ai_detected
+    library_file: "background.csv"
+    include_in_filename: false
 
   - name: hook
     display_name: "Hook"
@@ -90,6 +91,7 @@ fields:
     detection: ai_suggested
     library_file: "hook.csv"
     allow_custom: true
+    include_in_filename: false
 
 color_map:
   "#4B0082": purple
