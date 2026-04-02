@@ -982,10 +982,74 @@ def screen_confirm():
                 st.rerun()
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SCREEN 4: LIBRARY MANAGER
+# ══════════════════════════════════════════════════════════════════════════════
+
+def screen_library():
+    st.markdown('<p class="page-title">Library</p>', unsafe_allow_html=True)
+    st.markdown('<p class="page-sub">Manage allowed values for each field. Changes apply immediately to future scans.</p>', unsafe_allow_html=True)
+
+    # Fields that have a library CSV
+    lib_fields = [
+        f for f in config["fields"]
+        if f.get("detection", "") in ("ai_suggested", "ai_detected", "auto_ai")
+        and f["name"] in library.fields
+    ]
+
+    for field in lib_fields:
+        fname = field["name"]
+        display = field.get("display_name", fname)
+        entries = library.get_entries(fname)
+
+        with st.expander(f"**{display}** — {len(entries)} values", expanded=False):
+            # Table header
+            hcols = st.columns([3, 4, 1])
+            hcols[0].markdown('<div class="section-label">Value</div>', unsafe_allow_html=True)
+            hcols[1].markdown('<div class="section-label">Aliases</div>', unsafe_allow_html=True)
+            hcols[2].markdown('<div class="section-label">Del</div>', unsafe_allow_html=True)
+
+            for idx, entry in enumerate(entries):
+                val = entry["value"]
+                aliases = entry["aliases"]
+                row = st.columns([3, 4, 1])
+                row[0].markdown(
+                    f'<div style="padding:6px 0;font-size:13px;font-weight:500;color:#37352f;">{val}</div>',
+                    unsafe_allow_html=True,
+                )
+                row[1].markdown(
+                    f'<div style="padding:6px 0;font-size:12px;color:#9b9b9b;">{aliases}</div>',
+                    unsafe_allow_html=True,
+                )
+                if row[2].button("✕", key=f"del_{fname}_{idx}", help=f"Remove '{val}'"):
+                    library.remove_value(fname, val)
+                    st.rerun()
+
+            st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-label">Add new value</div>', unsafe_allow_html=True)
+            with st.form(key=f"add_{fname}", clear_on_submit=True):
+                fc1, fc2, fc3 = st.columns([2, 3, 1])
+                new_val = fc1.text_input("Value", placeholder="e.g. kids", label_visibility="collapsed", key=f"nv_{fname}")
+                new_aliases = fc2.text_input("Aliases (comma-separated)", placeholder="e.g. children,child,baby", label_visibility="collapsed", key=f"na_{fname}")
+                submitted = fc3.form_submit_button("Add", use_container_width=True)
+                if submitted:
+                    if new_val.strip():
+                        library.add_value(fname, new_val.strip(), new_aliases.strip())
+                        st.rerun()
+                    else:
+                        st.warning("Value cannot be empty.")
+
+
 # ── Router ───────────────────────────────────────────────────────────────────
-{
-    "upload": screen_upload,
-    "dashboard": screen_dashboard,
-    "review": screen_dashboard,  # Backward compat if session has old value
-    "confirm": screen_confirm,
-}[st.session_state.get("screen", "upload")]()
+tab_rename, tab_library = st.tabs(["✏️  Rename", "📚  Library"])
+
+with tab_rename:
+    {
+        "upload": screen_upload,
+        "dashboard": screen_dashboard,
+        "review": screen_dashboard,  # Backward compat if session has old value
+        "confirm": screen_confirm,
+    }[st.session_state.get("screen", "upload")]()
+
+with tab_library:
+    screen_library()

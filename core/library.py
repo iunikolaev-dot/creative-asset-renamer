@@ -110,3 +110,43 @@ class ValueLibrary:
 
         # Reload field
         self.fields[field_name] = self._load_field(csv_path)
+
+    def remove_value(self, field_name: str, value: str):
+        """Remove a value from a library CSV file."""
+        if field_name not in self.fields:
+            return
+
+        value = value.strip().lower()
+        csv_path = os.path.join(self.library_dir, f"{field_name}.csv")
+
+        rows = []
+        with open(csv_path, "r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            fieldnames = reader.fieldnames
+            for row in reader:
+                if row["value"].strip().lower() != value:
+                    rows.append(row)
+
+        with open(csv_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+        # Reload field
+        self.fields[field_name] = self._load_field(csv_path)
+
+    def get_entries(self, field_name: str) -> list[dict]:
+        """Return full entries list [{value, aliases, description}] from CSV."""
+        if field_name not in self.fields:
+            return []
+        csv_path = os.path.join(self.library_dir, f"{field_name}.csv")
+        entries = []
+        with open(csv_path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                entries.append({
+                    "value": row.get("value", "").strip(),
+                    "aliases": row.get("aliases", "").strip(),
+                    "description": row.get("description", "").strip(),
+                })
+        return entries
